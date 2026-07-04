@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#D97940" id="themeColor">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Inkwell">
+<link rel="apple-touch-icon" id="touchIcon">
+<link rel="manifest" id="appManifest">
+<title>Inkwell</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-editor:#FFFFFF;--bg-panel:#EBEBEB;--bg-hover:rgba(0,0,0,0.04);
+  --text:#1A1A1A;--text2:#4A4A4A;--muted:#8E8E8E;
+  --border:#D5D5D5;--border-strong:#BBBBBB;
+  --accent:#D97940;--accent-soft:rgba(217,121,64,0.1);
+  --moss:#3D8B5E;--moss-soft:rgba(61,139,94,0.12);
+  --blush:#C04050;--blush-soft:rgba(192,64,80,0.1);
+  --font-ui:'IBM Plex Sans',system-ui,sans-serif;
+  --font-story:'IBM Plex Serif',Georgia,serif;
+  --font-mono:'IBM Plex Mono',Consolas,monospace;
+  --header-h:48px;--nav-h:54px;--ease:0.15s ease;
+  --r:4px;--r-lg:6px;--r-xl:8px;
+}
+[data-theme="dark"]{
+  --bg-editor:#141414;--bg-panel:#1C1C1C;--bg-hover:rgba(255,255,255,0.05);
+  --text:#E0E0E0;--text2:#A8A8A8;--muted:#5A5A5A;
+  --border:#2E2E2E;--border-strong:#444444;
+  --accent:#E8955A;--accent-soft:rgba(232,149,90,0.12);
+  --moss:#4DAF78;--moss-soft:rgba(77,175,120,0.12);
+  --blush:#E05C6A;--blush-soft:rgba(224,92,106,0.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;transition:background-color var(--ease),border-color var(--ease),color var(--ease);}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--font-ui);color:var(--text);background:var(--bg-panel);font-size:14px;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;}
+a{color:var(--accent);}
+/* HEADER */
+.app-header{height:var(--header-h);flex-shrink:0;display:flex;align-items:center;gap:10px;padding:0 18px;background:var(--bg-panel);border-bottom:1px solid var(--border);z-index:90;}
+.logo{font-family:var(--font-story);font-size:1.05rem;font-weight:700;color:var(--text);flex-shrink:0;letter-spacing:-0.01em;}
+.logo em{color:var(--accent);font-style:normal;}
+.theme-toggle{padding:3px 9px;border:1px solid var(--border);border-radius:var(--r);background:transparent;font-family:var(--font-mono);font-size:0.65rem;color:var(--muted);cursor:pointer;flex-shrink:0;transition:all var(--ease);}
+.theme-toggle:hover{color:var(--text);border-color:var(--border-strong);}
+/* PROJECT SWITCHER */
+.proj-sw{position:relative;flex-shrink:0;}
+.proj-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;font-family:var(--font-ui);font-size:0.78rem;font-weight:500;color:var(--text);max-width:160px;transition:all var(--ease);}
+.proj-btn:hover{border-color:var(--border-strong);background:var(--bg-hover);}
+.proj-btn .pname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;}
+.pdrop{position:absolute;top:calc(100% + 5px);left:0;min-width:220px;background:var(--bg-panel);border:1px solid var(--border-strong);border-radius:var(--r-xl);z-index:200;overflow:hidden;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.15);}
+.pdrop.open{display:block;animation:pop-in 0.15s ease;}
+@keyframes pop-in{from{transform:translateY(-5px);opacity:0}to{transform:none;opacity:1}}
+.pdrop-head{padding:8px 13px 6px;font-family:var(--font-mono);font-size:0.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+.pdrop-item{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;transition:background var(--ease);}
+.pdrop-item:hover,.pdrop-item.active{background:var(--accent-soft);}
+.pdrop-dot{width:5px;height:5px;border-radius:50%;background:var(--border);flex-shrink:0;}
+.pdrop-item.active .pdrop-dot{background:var(--accent);}
+.pdrop-name{flex:1;font-size:0.82rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pdrop-acts{display:flex;gap:3px;opacity:0;transition:opacity var(--ease);}
+.pdrop-item:hover .pdrop-acts{opacity:1;}
+.pmini{width:20px;height:20px;border:1px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;font-size:0.65rem;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all var(--ease);}
+.pmini:hover{color:var(--text);border-color:var(--border-strong);}
+.pdrop-foot{padding:5px;border-top:1px solid var(--border);}
+.pdrop-new{width:100%;padding:6px 10px;border:1px dashed var(--border);border-radius:var(--r);background:none;cursor:pointer;font-family:var(--font-ui);font-size:0.78rem;font-weight:500;color:var(--muted);transition:all var(--ease);text-align:left;}
+.pdrop-new:hover{border-color:var(--accent);color:var(--accent);}
+/* TOP NAV */
+.top-nav{display:flex;gap:2px;flex:1;justify-content:center;}
+.tnav-btn{font-family:var(--font-ui);font-size:0.8rem;font-weight:400;padding:5px 14px;border:none;background:none;color:var(--muted);cursor:pointer;transition:all var(--ease);border-radius:var(--r);}
+.tnav-btn:hover{color:var(--text);background:var(--bg-hover);}
+.tnav-btn.active{color:var(--text);font-weight:500;}
+/* STATUS */
+.status-pill{display:flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--font-mono);font-size:0.6rem;color:var(--muted);white-space:nowrap;flex-shrink:0;}
+.sdot{width:5px;height:5px;border-radius:50%;background:var(--border);flex-shrink:0;}
+.sdot.ok{background:var(--moss);}
+.sdot.busy{background:var(--accent);animation:pulse 1s infinite;}
+.sdot.err{background:var(--blush);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sync-pill{font-family:var(--font-mono);font-size:0.6rem;color:var(--muted);padding:3px 8px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all var(--ease);flex-shrink:0;}
+.sync-pill:hover{color:var(--text);border-color:var(--border-strong);}
+.sync-pill.synced{color:var(--moss);}
+.sync-pill.syncing{color:var(--accent);animation:pulse 1s infinite;}
+/* BOTTOM NAV */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:var(--bg-panel);border-top:1px solid var(--border);z-index:90;padding:0 4px;justify-content:space-around;align-items:center;}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 0;border:none;background:none;cursor:pointer;color:var(--muted);font-family:var(--font-ui);font-size:0.64rem;font-weight:500;min-height:44px;transition:color var(--ease);}
+.bnav-btn.active{color:var(--accent);}
+/* MAIN + TABS */
+main{flex:1;overflow:hidden;position:relative;}
+.tab-panel{display:none;position:absolute;inset:0;}
+.tab-panel.active{display:block;}
+#tab-story.active{display:flex;flex-direction:column;overflow:hidden;}
+#tab-characters.active,#tab-lorebook.active,#tab-settings.active{overflow-y:auto;padding:24px 28px;background:var(--bg-panel);}
+/* STORY GRID */
+.story-grid{flex:1;display:grid;grid-template-columns:220px 1fr 300px;overflow:hidden;}
+/* SIDEBAR */
+.story-sidebar{background:var(--bg-panel);border-right:1px solid var(--border);height:100%;overflow-y:auto;display:flex;flex-direction:column;transition:opacity 0.25s;}
+.sidebar-head{padding:13px 16px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg-panel);z-index:1;flex-shrink:0;}
+.sidebar-label{font-family:var(--font-mono);font-size:0.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+.icon-btn{width:24px;height:24px;border:1px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:600;color:var(--text2);transition:all var(--ease);}
+.icon-btn:hover{border-color:var(--border-strong);color:var(--text);background:var(--bg-hover);}
+.ch-list{flex:1;overflow-y:auto;}
+.ch-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-left:2px solid transparent;border-bottom:1px solid var(--border);transition:all var(--ease);}
+.ch-item:hover{background:var(--bg-hover);}
+.ch-item.active{border-left-color:var(--accent);background:var(--accent-soft);}
+.ch-num{font-family:var(--font-mono);font-size:0.68rem;font-weight:500;color:var(--muted);width:18px;flex-shrink:0;text-align:center;}
+.ch-item.active .ch-num{color:var(--accent);}
+.ch-sdot{width:5px;height:5px;border-radius:50%;background:var(--border);flex-shrink:0;}
+.ch-item.status-draft .ch-sdot{background:var(--accent);}
+.ch-item.status-ready .ch-sdot{background:var(--moss);}
+.ch-info{flex:1;min-width:0;}
+.ch-title{font-size:0.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ch-meta{font-family:var(--font-mono);font-size:0.6rem;color:var(--muted);margin-top:2px;}
+.stats-section{margin-top:auto;border-top:1px solid var(--border);padding:10px 0;flex-shrink:0;}
+.stat-row{display:flex;align-items:baseline;justify-content:space-between;padding:4px 16px;gap:8px;}
+.stat-lbl{font-family:var(--font-mono);font-size:0.62rem;color:var(--muted);}
+.stat-val{font-family:var(--font-mono);font-size:0.8rem;font-weight:500;color:var(--text2);}
+/* EDITOR COL */
+.editor-col{background:var(--bg-editor);height:100%;overflow-y:auto;display:flex;flex-direction:column;position:relative;}
+.story-grid.editor-focused .story-sidebar,.story-grid.editor-focused .chat-col{opacity:0.45;}
+.story-grid.editor-focused .story-sidebar:hover,.story-grid.editor-focused .chat-col:hover{opacity:1;}
+/* SUBTABS */
+.subtabs{display:none;flex-shrink:0;border-bottom:1px solid var(--border);}
+.subtab-btn{flex:1;padding:10px 0;border:none;background:none;font-family:var(--font-ui);font-size:0.82rem;font-weight:400;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all var(--ease);}
+.subtab-btn.active{color:var(--text);border-bottom-color:var(--accent);font-weight:500;}
+/* SCENE PLANNER */
+.scene-section{border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg-panel);}
+.scene-header{padding:9px 20px;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+.scene-header:hover{background:var(--bg-hover);}
+.scene-toggle-label{font-family:var(--font-mono);font-size:0.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);flex:1;}
+.scene-caret{font-size:0.62rem;color:var(--muted);transition:transform var(--ease);}
+.scene-caret.open{transform:rotate(90deg);}
+.scene-body{display:none;padding:0 20px 10px;flex-direction:column;gap:4px;}
+.scene-body.open{display:flex;}
+.scene-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);}
+.scene-num{font-family:var(--font-mono);font-size:0.62rem;color:var(--muted);width:16px;text-align:center;flex-shrink:0;}
+.scene-inp{flex:1;border:none;background:none;font-family:var(--font-ui);font-size:0.79rem;color:var(--text);outline:none;padding:3px 0;}
+.scene-inp::placeholder{color:var(--muted);}
+.scene-pov-inp{width:110px;border:none;background:none;font-family:var(--font-mono);font-size:0.72rem;color:var(--text2);outline:none;padding:3px 6px;border-left:1px solid var(--border);}
+.scene-pov-inp::placeholder{color:var(--muted);}
+.scene-del{width:20px;height:20px;border:none;background:none;color:var(--muted);cursor:pointer;font-size:0.9rem;flex-shrink:0;border-radius:var(--r);}
+.scene-del:hover{color:var(--blush);}
+.scene-add-btn{align-self:flex-start;margin-top:6px;padding:3px 9px;border:1px dashed var(--border);border-radius:var(--r);background:none;cursor:pointer;font-family:var(--font-ui);font-size:0.75rem;color:var(--muted);transition:all var(--ease);}
+.scene-add-btn:hover{border-color:var(--accent);color:var(--accent);}
+/* EDITOR */
+.editor-topbar{padding:10px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0;background:var(--bg-editor);position:sticky;top:0;z-index:1;}
+.ch-num-label{font-family:var(--font-mono);font-size:0.65rem;color:var(--muted);flex-shrink:0;}
+.ch-title-input{font-family:var(--font-story);font-size:0.95rem;font-weight:500;border:none;background:none;color:var(--text);flex:1;outline:none;min-width:80px;}
+.ch-title-input::placeholder{color:var(--muted);font-style:italic;}
+.editor-textarea{width:100%;padding:32px 44px;font-family:var(--font-story);font-size:1rem;line-height:1.92;border:none;background:transparent;resize:none;color:var(--text);outline:none;min-height:calc(100vh - 240px);}
+.editor-textarea::placeholder{color:var(--muted);font-style:italic;}
+.editor-footer{padding:8px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;flex-shrink:0;background:var(--bg-editor);position:sticky;bottom:0;}
+.wc-label{font-family:var(--font-mono);font-size:0.63rem;color:var(--muted);}
+.autosave-label{font-family:var(--font-mono);font-size:0.6rem;color:var(--moss);opacity:0;transition:opacity .5s;}
+.autosave-label.show{opacity:1;}
+.footer-btns{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.continue-btn{padding:6px 14px;border:1px solid var(--border);border-radius:var(--r);background:transparent;font-family:var(--font-ui);font-size:0.79rem;font-weight:400;color:var(--text2);cursor:pointer;transition:all var(--ease);}
+.continue-btn:hover{border-color:var(--border-strong);color:var(--text);}
+.continue-btn:disabled{opacity:.45;cursor:not-allowed;}
+.save-btn{display:flex;align-items:center;gap:5px;padding:6px 18px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-family:var(--font-ui);font-size:0.82rem;font-weight:600;cursor:pointer;transition:opacity var(--ease);flex-shrink:0;}
+.save-btn:hover{opacity:.85;}
+.save-btn:disabled{opacity:.5;cursor:not-allowed;}
+.save-btn.saving{background:var(--moss);}
+.editor-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:60px 24px;color:var(--muted);}
+.editor-empty h3{font-family:var(--font-story);font-size:1.1rem;color:var(--text2);margin-bottom:6px;}
+.editor-empty p{font-size:0.82rem;line-height:1.65;max-width:280px;}
+/* CONTINUE DRAFT */
+#continueDraftArea{display:none;border-top:1px solid var(--border);flex-shrink:0;}
+.continue-draft-head{padding:8px 20px;background:var(--bg-panel);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-family:var(--font-mono);font-size:0.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);}
+.continue-draft-body{padding:24px 44px;font-family:var(--font-story);font-size:0.97rem;line-height:1.9;color:var(--text);max-height:340px;overflow-y:auto;white-space:pre-wrap;background:var(--bg-editor);}
+.continue-draft-actions{padding:8px 20px;border-top:1px solid var(--border);display:flex;gap:7px;flex-wrap:wrap;background:var(--bg-editor);}
+/* CHAT */
+.chat-col{background:var(--bg-panel);border-left:1px solid var(--border);height:100%;overflow:hidden;display:flex;flex-direction:column;transition:opacity 0.25s;}
+.chat-card{height:100%;display:flex;flex-direction:column;background:transparent;}
+.chat-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.chat-head-info{flex:1;}
+.chat-head-title{font-size:0.84rem;font-weight:600;color:var(--text);}
+.chat-head-sub{font-family:var(--font-mono);font-size:0.6rem;color:var(--muted);margin-top:2px;}
+.chat-clear-btn{padding:3px 8px;border:1px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;font-family:var(--font-mono);font-size:0.62rem;color:var(--muted);transition:all var(--ease);flex-shrink:0;}
+.chat-clear-btn:hover{color:var(--blush);border-color:var(--blush);}
+.chat-ctx{padding:6px 13px;border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0;}
+.ctx-chip{padding:1px 6px;border-radius:var(--r);font-family:var(--font-mono);font-size:0.6rem;font-weight:500;background:var(--bg-hover);color:var(--text2);}
+.ctx-chip.on{background:var(--moss-soft);color:var(--moss);}
+.ctx-chip.off{opacity:.35;}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+.chat-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--muted);gap:10px;}
+.chat-empty p{font-size:0.8rem;line-height:1.65;max-width:220px;}
+.chat-starters{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:4px;}
+.starter-btn{padding:4px 9px;border:1px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;font-family:var(--font-ui);font-size:0.73rem;color:var(--text2);transition:all var(--ease);}
+.starter-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+.msg{display:flex;flex-direction:column;gap:4px;max-width:92%;}
+.msg.user{align-self:flex-end;align-items:flex-end;}
+.msg.ai{align-self:flex-start;align-items:flex-start;}
+.msg-bubble{padding:8px 12px;font-size:0.82rem;line-height:1.62;word-break:break-word;}
+.msg-bubble p{margin-bottom:0.7em;}
+.msg-bubble p:last-child{margin-bottom:0;}
+.msg.user .msg-bubble{background:var(--accent);color:#fff;border-radius:10px 10px 2px 10px;}
+.msg.ai .msg-bubble{background:var(--bg-editor);color:var(--text);border:1px solid var(--border);border-radius:2px 10px 10px 10px;}
+.scroll-bottom-btn{position:absolute;bottom:130px;right:12px;width:28px;height:28px;border-radius:50%;background:var(--bg-panel);border:1px solid var(--border-strong);color:var(--text2);cursor:pointer;font-size:0.85rem;display:none;align-items:center;justify-content:center;z-index:5;transition:all var(--ease);}
+.scroll-bottom-btn:hover{background:var(--bg-hover);color:var(--text);border-color:var(--accent);}
+.scroll-bottom-btn.visible{display:flex;}
+.typing{color:var(--muted);font-style:italic;font-size:0.79rem;}
+.draft-card{background:var(--bg-editor);border:1px solid var(--accent);border-radius:var(--r-xl);overflow:hidden;max-width:100%;}
+.draft-head{padding:5px 11px;background:var(--accent-soft);border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:0.6rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);}
+.draft-body{padding:10px 13px;font-family:var(--font-story);font-size:0.86rem;line-height:1.82;color:var(--text);max-height:220px;overflow-y:auto;white-space:pre-wrap;}
+.draft-actions{padding:6px 9px;border-top:1px solid var(--border);display:flex;gap:5px;flex-wrap:wrap;}
+.draft-btn{flex:1;padding:5px 9px;border-radius:var(--r);font-family:var(--font-ui);font-size:0.75rem;font-weight:500;cursor:pointer;transition:all var(--ease);min-height:30px;display:flex;align-items:center;justify-content:center;border:1px solid transparent;}
+.draft-btn-write{background:var(--accent);color:#fff;}
+.draft-btn-write:hover{opacity:.85;}
+.draft-btn-append{background:transparent;color:var(--text2);border-color:var(--border);}
+.draft-btn-append:hover{border-color:var(--border-strong);color:var(--text);}
+.chat-input-area{padding:8px 10px 10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
+.chat-textarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg-editor);font-family:var(--font-ui);font-size:0.84rem;color:var(--text);resize:none;outline:none;line-height:1.55;min-height:50px;transition:border-color var(--ease);}
+.chat-textarea:focus{border-color:var(--accent);}
+.chat-textarea::placeholder{color:var(--muted);}
+.chat-send-btn{padding:7px 13px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-family:var(--font-ui);font-size:0.82rem;font-weight:600;cursor:pointer;transition:opacity var(--ease);min-height:36px;}
+.chat-send-btn:hover{opacity:.85;}
+.chat-send-btn:disabled{opacity:.5;cursor:not-allowed;}
+.chat-stop-btn{padding:7px 13px;background:transparent;color:var(--blush);border:1px solid var(--blush);border-radius:var(--r);font-family:var(--font-ui);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all var(--ease);min-height:36px;white-space:nowrap;}
+.chat-stop-btn:hover{background:var(--blush-soft);}
+/* TONE PRESETS */
+.tone-panel{padding:8px 20px;border-bottom:1px solid var(--border);background:var(--bg-panel);display:flex;gap:12px;flex-wrap:wrap;align-items:center;flex-shrink:0;}
+.tone-group{display:flex;align-items:center;gap:5px;}
+.tone-label{font-family:var(--font-mono);font-size:0.6rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);flex-shrink:0;}
+.tone-select{padding:2px 6px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg-editor);font-family:var(--font-ui);font-size:0.73rem;color:var(--text);outline:none;cursor:pointer;transition:all var(--ease);}
+.tone-select:focus{border-color:var(--accent);}
+/* CONTINUITY BANNER */
+.continuity-banner{display:none;margin:8px 20px;padding:9px 13px;background:var(--blush-soft);border:1px solid var(--blush);border-radius:var(--r-lg);font-size:0.79rem;line-height:1.6;color:var(--text);flex-shrink:0;}
+.continuity-banner.show{display:block;}
+.continuity-banner-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.continuity-banner-title{font-family:var(--font-mono);font-size:0.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--blush);font-weight:600;}
+.continuity-dismiss{background:none;border:none;cursor:pointer;color:var(--blush);font-size:0.85rem;padding:0 2px;line-height:1;}
+/* DRAFT HISTORY */
+.draft-history{padding:4px 8px;border-top:1px solid var(--border);background:var(--bg-panel);}
+.draft-history-label{font-family:var(--font-mono);font-size:0.58rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.draft-hist-item{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--border);}
+.draft-hist-item:last-child{border-bottom:none;}
+.draft-hist-num{font-family:var(--font-mono);font-size:0.6rem;color:var(--muted);width:14px;flex-shrink:0;}
+.draft-hist-preview{flex:1;font-size:0.72rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.draft-hist-restore{padding:1px 6px;border:1px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;font-family:var(--font-mono);font-size:0.6rem;color:var(--muted);transition:all var(--ease);flex-shrink:0;}
+.draft-hist-restore:hover{border-color:var(--accent);color:var(--accent);}
+/* BUBBLE ACTION BUTTONS */
+.msg-actions{display:flex;gap:4px;margin-top:3px;flex-wrap:wrap;}
+.msg-action-btn{padding:2px 8px;border:1px solid var(--border);border-radius:var(--r);background:transparent;cursor:pointer;font-family:var(--font-mono);font-size:0.6rem;color:var(--muted);transition:all var(--ease);}
+.msg-action-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+/* FANFIC */
+.fanfic-upload-zone{border:2px dashed var(--border);border-radius:var(--r-lg);padding:28px 20px;text-align:center;cursor:pointer;transition:all var(--ease);}
+.fanfic-upload-zone:hover,.fanfic-upload-zone.drag{border-color:var(--accent);background:var(--accent-soft);}
+.fanfic-upload-zone p{font-size:0.82rem;color:var(--muted);margin-top:6px;}
+.fanfic-file-list{display:flex;flex-direction:column;gap:4px;margin-top:8px;}
+.fanfic-file-item{display:flex;align-items:center;gap:8px;padding:5px 9px;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--r);}
+.fanfic-file-name{flex:1;font-size:0.79rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fanfic-file-del{background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.85rem;padding:0 2px;}
+.fanfic-file-del:hover{color:var(--blush);}
+.fanfic-review-section{display:flex;flex-direction:column;gap:10px;}
+.fanfic-review-chars,.fanfic-review-lore{border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
+.fanfic-review-head{padding:7px 12px;background:var(--bg-panel);border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:0.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:space-between;}
+.fanfic-review-count{color:var(--accent);}
+.fanfic-review-list{max-height:180px;overflow-y:auto;}
+.fanfic-review-item{padding:7px 12px;border-bottom:1px solid var(--border);font-size:0.79rem;display:flex;gap:8px;align-items:flex-start;}
+.fanfic-review-item:last-child{border-bottom:none;}
+.fanfic-review-item input[type=checkbox]{margin-top:3px;flex-shrink:0;accent-color:var(--accent);}
+.fanfic-review-item-body{flex:1;min-width:0;}
+.fanfic-review-name{font-weight:600;font-size:0.8rem;}
+.fanfic-review-detail{color:var(--muted);font-size:0.73rem;margin-top:1px;line-height:1.45;}
+.modal.modal-wide{max-width:680px;}
+/* PAGE HEADERS */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+.page-title{font-family:var(--font-story);font-size:1.3rem;font-weight:500;}
+.page-sub{font-size:0.79rem;color:var(--muted);margin-top:3px;}
+/* CHARACTERS */
+.chars-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.char-card{background:var(--bg-editor);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;transition:border-color var(--ease);}
+.char-card:hover{border-color:var(--border-strong);}
+.char-card-head{padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;}
+.char-avatar{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.75rem;font-weight:600;color:white;flex-shrink:0;}
+.char-name{font-family:var(--font-story);font-size:0.92rem;font-weight:700;}
+.char-role-chip{display:inline-block;margin-top:3px;padding:1px 6px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--font-mono);font-size:0.62rem;color:var(--muted);}
+.char-body{padding:10px 14px;}
+.char-field{margin-bottom:8px;}.char-field:last-child{margin-bottom:0;}
+.flbl{font-family:var(--font-mono);font-size:0.59rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
+.fval{font-size:0.8rem;line-height:1.55;}
+.char-foot{padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:5px;}
+/* LOREBOOK */
+.lore-layout{display:grid;grid-template-columns:160px 1fr;gap:16px;}
+.lore-nav{display:flex;flex-direction:column;gap:2px;}
+.lnav-btn{padding:6px 10px;border-radius:var(--r);font-size:0.8rem;font-weight:400;cursor:pointer;border:none;background:transparent;text-align:left;color:var(--text2);display:flex;align-items:center;gap:6px;transition:all var(--ease);font-family:var(--font-ui);min-height:34px;}
+.lnav-btn:hover{background:var(--bg-hover);color:var(--text);}
+.lnav-btn.active{background:var(--bg-editor);border:1px solid var(--border);color:var(--text);font-weight:500;}
+.lnav-count{margin-left:auto;font-family:var(--font-mono);font-size:0.6rem;color:var(--muted);}
+.lore-entries{display:flex;flex-direction:column;gap:8px;}
+.lore-card{background:var(--bg-editor);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;transition:border-color var(--ease);}
+.lore-card:hover{border-color:var(--border-strong);}
+.lore-card-head{padding:9px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.lore-name{font-family:var(--font-story);font-size:0.9rem;font-weight:700;}
+.lore-cat-chip{padding:1px 6px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--font-mono);font-size:0.6rem;color:var(--muted);}
+.lore-body{padding:9px 13px;font-size:0.8rem;line-height:1.62;color:var(--text2);}
+.lore-foot{padding:6px 9px;border-top:1px solid var(--border);display:flex;gap:5px;}
+/* SETTINGS */
+.settings-col{max-width:580px;display:flex;flex-direction:column;gap:12px;}
+.s-card{background:var(--bg-editor);border:1px solid var(--border);border-radius:var(--r-xl);overflow:hidden;}
+.s-card-head{padding:10px 15px;border-bottom:1px solid var(--border);font-size:0.86rem;font-weight:600;display:flex;align-items:center;gap:7px;}
+.s-body{padding:14px 15px;display:flex;flex-direction:column;gap:12px;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.flabel{font-family:var(--font-mono);font-size:0.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.fhint{font-size:0.73rem;color:var(--muted);margin-top:2px;line-height:1.5;}
+.finput,.fselect,.ftextarea{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg-panel);font-family:var(--font-ui);font-size:0.84rem;color:var(--text);outline:none;transition:all var(--ease);min-height:36px;}
+.finput:focus,.fselect:focus,.ftextarea:focus{border-color:var(--accent);}
+.ftextarea{min-height:86px;resize:vertical;line-height:1.65;}
+.sync-status{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--r);background:var(--bg-panel);border:1px solid var(--border);font-size:0.81rem;}
+.sync-status.ok{border-color:var(--moss);}
+.sync-text strong{display:block;font-weight:600;font-size:0.82rem;}
+.sync-text span{font-size:0.73rem;color:var(--muted);display:block;margin-top:1px;}
+.export-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.export-tile{padding:13px;border:1px solid var(--border);border-radius:var(--r-xl);background:var(--bg-panel);cursor:pointer;transition:all var(--ease);text-align:center;}
+.export-tile:hover{border-color:var(--accent);background:var(--accent-soft);}
+.export-tile-title{font-weight:600;font-size:0.86rem;margin-bottom:2px;}
+.export-tile-desc{font-size:0.71rem;color:var(--muted);}
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:5px 13px;border-radius:var(--r);font-family:var(--font-ui);font-size:0.79rem;font-weight:500;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:all var(--ease);min-height:30px;}
+.btn:hover{background:var(--bg-hover);border-color:var(--border-strong);color:var(--text);}
+.btn-primary{background:var(--text);color:var(--bg-editor);border-color:var(--text);}
+.btn-primary:hover{opacity:.82;background:var(--text);}
+.btn-danger{color:var(--blush);border-color:transparent;}
+.btn-danger:hover{background:var(--blush-soft);}
+.btn-sm{padding:3px 10px;font-size:0.74rem;min-height:26px;}
+/* MODALS */
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,0.48);backdrop-filter:blur(4px);z-index:300;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-back.open{display:flex;}
+.modal{background:var(--bg-panel);border:1px solid var(--border-strong);border-radius:var(--r-xl);width:100%;max-width:500px;max-height:88vh;overflow-y:auto;animation:modal-in 0.18s ease;}
+@keyframes modal-in{from{transform:scale(0.97);opacity:0}to{transform:none;opacity:1}}
+.modal-head{padding:14px 17px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:var(--font-story);font-size:1rem;font-weight:700;}
+.modal-body{padding:13px 17px;display:flex;flex-direction:column;gap:10px;}
+.modal-foot{padding:10px 17px;border-top:1px solid var(--border);display:flex;gap:7px;justify-content:flex-end;}
+/* TOASTS */
+.toast-zone{position:fixed;bottom:16px;right:14px;z-index:400;display:flex;flex-direction:column;gap:5px;align-items:flex-end;pointer-events:none;}
+.toast{padding:7px 12px;border-radius:var(--r-xl);font-size:0.79rem;font-weight:500;animation:toast-in 0.2s ease;max-width:240px;pointer-events:all;}
+@keyframes toast-in{from{transform:translateX(10px);opacity:0}to{transform:none;opacity:1}}
+.toast-info{background:var(--text);color:var(--bg-editor);}
+.toast-ok{background:var(--moss);color:white;}
+.toast-err{background:var(--blush);color:white;}
+.empty{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty h3{font-family:var(--font-story);font-size:1rem;color:var(--text2);margin-bottom:5px;}
+.empty p{font-size:0.8rem;line-height:1.65;max-width:260px;margin:0 auto;}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.back-btn-wrap{display:none;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:10px;}
+/* TABLET */
+@media(max-width:1060px){
+  .story-grid{grid-template-columns:216px 1fr;}
+  .chat-col{display:none;}
+  .subtabs{display:flex;}
+  .editor-textarea{padding:24px 32px;min-height:calc(100vh - 280px);}
+}
+/* MOBILE */
+@media(max-width:720px){
+  html,body{overflow:auto;height:auto;}
+  main{overflow:auto;position:static;height:auto;}
+  .tab-panel{position:static;display:none;}
+  .tab-panel.active{display:block;background:var(--bg-panel);}
+  #tab-story.active{overflow:auto;height:auto;flex-direction:column;}
+  .story-grid{display:flex;flex-direction:column;overflow:visible;height:auto;padding-bottom:var(--nav-h);}
+  .story-grid[data-view="list"] .editor-col{display:none;}
+  .story-grid[data-view="list"] .story-sidebar{display:flex;}
+  .story-grid[data-view="detail"] .story-sidebar{display:none;}
+  .story-grid[data-view="detail"] .editor-col{display:flex;min-height:calc(100dvh - var(--header-h) - var(--nav-h));}
+  .story-sidebar{height:auto;border-right:none;border-bottom:1px solid var(--border);}
+  .editor-col{height:auto;overflow-y:visible;}
+  .chat-col{display:none;}
+  .subtabs{display:flex;}
+  .back-btn-wrap{display:block;}
+  .editor-textarea{padding:18px 20px;min-height:calc(100dvh - var(--header-h) - var(--nav-h) - 240px);}
+  .editor-footer{flex-direction:column;align-items:stretch;}
+  .footer-btns{flex-direction:column;}
+  .continue-btn,.save-btn{width:100%;justify-content:center;text-align:center;}
+  .top-nav,.status-pill,.sync-pill{display:none;}
+  .bottom-nav{display:flex;}
+  .toast-zone{bottom:calc(var(--nav-h) + 8px);right:10px;}
+  .lore-layout{grid-template-columns:1fr;}
+  .lore-nav{flex-direction:row;flex-wrap:wrap;}
+  .export-grid{grid-template-columns:1fr;}
+  .page-header{flex-direction:column;}
+  #tab-characters.active,#tab-lorebook.active,#tab-settings.active{padding:16px;}
+  .btn{min-height:40px;}
+  .story-grid.editor-focused .story-sidebar,.story-grid.editor-focused .chat-col{opacity:1;}
+  .modal-back{align-items:flex-end;padding:0;}
+  .modal{border-radius:12px 12px 0 0;max-width:100%;animation:slide-up .2s ease;}
+  @keyframes slide-up{from{transform:translateY(100%)}to{transform:none}}
+}
+</style>
+</head>
+<body>
+<header class="app-header">
+  <div class="logo">Ink<em>well</em></div>
+  <div class="proj-sw" id="projSW">
+    <button class="proj-btn" id="projBtn">
+      <span class="pname" id="curProjName">...</span>
+      <span style="color:var(--muted);font-size:0.6rem">&#9660;</span>
+    </button>
+    <div class="pdrop" id="pdrop">
+      <div class="pdrop-head">Projects</div>
+      <div id="projList"></div>
+      <div class="pdrop-foot" style="display:flex;flex-direction:column;gap:4px"><button class="pdrop-new" id="newProjBtn">+ New project</button><button class="pdrop-new" id="fanficBtn" style="border-style:solid;color:var(--accent)">&#128218; Fanfic mode — import source</button></div>
+    </div>
+  </div>
+  <nav class="top-nav" id="topNav">
+    <button class="tnav-btn active" data-tab="story">Story</button>
+    <button class="tnav-btn" data-tab="characters">Characters</button>
+    <button class="tnav-btn" data-tab="lorebook">Lorebook</button>
+    <button class="tnav-btn" data-tab="settings">Settings</button>
+  </nav>
+  <div class="sync-pill" id="syncPill">Not connected</div>
+  <div class="status-pill"><div class="sdot" id="sdot"></div><span id="stext">No key</span></div>
+  <button class="theme-toggle" id="themeToggle">Dark</button>
+</header>
+<main>
+<div class="tab-panel active" id="tab-story">
+  <div class="story-grid" id="storyGrid" data-view="list">
+    <div class="story-sidebar">
+      <div class="sidebar-head">
+        <span class="sidebar-label">Chapters</span>
+        <button class="icon-btn" id="addChBtn" title="New chapter">+</button>
+      </div>
+      <div class="ch-list" id="chList"></div>
+      <div class="stats-section">
+        <div class="stat-row"><span class="stat-lbl">Words</span><span class="stat-val" id="sWd">0</span></div>
+        <div class="stat-row"><span class="stat-lbl">Chapters</span><span class="stat-val" id="sCh">0</span></div>
+        <div class="stat-row"><span class="stat-lbl">Characters</span><span class="stat-val" id="sCr">0</span></div>
+        <div class="stat-row"><span class="stat-lbl">Lore</span><span class="stat-val" id="sLr">0</span></div>
+      </div>
+    </div>
+    <div class="editor-col" id="editorCol">
+      <div class="back-btn-wrap"><button class="btn btn-sm" id="backBtn" onclick="setView('list')">&#8592; Chapters</button></div>
+      <div class="subtabs" id="subtabs">
+        <button class="subtab-btn active" data-sub="write">Write</button>
+        <button class="subtab-btn" data-sub="chat">AI Chat</button>
+      </div>
+      <div class="editor-empty" id="editorEmpty">
+        <h3>No chapter open</h3>
+        <p>Pick a chapter from the sidebar, or tap <strong>+</strong> to add one.</p>
+      </div>
+      <div id="editorActive" style="display:none;flex-direction:column;flex:1">
+        <div id="writePanel" style="display:flex;flex-direction:column;flex:1">
+          <div class="scene-section" id="sceneSection">
+            <div class="scene-header" id="sceneToggle">
+              <span class="scene-toggle-label">Chapter Outline</span>
+              <span id="sceneCountLabel" style="font-family:var(--font-mono);font-size:0.6rem;color:var(--muted);margin-right:6px"></span>
+              <span class="scene-caret" id="sceneCaret">&#9654;</span>
+              <button class="btn btn-sm" id="addSceneBtn" onclick="event.stopPropagation();addScene()" style="margin-left:8px">+ Scene</button>
+            </div>
+            <div class="scene-body" id="sceneBody"></div>
+          </div>
+          <div class="editor-topbar">
+            <span class="ch-num-label" id="chNumBadge">Ch. 1</span>
+            <input class="ch-title-input" id="chTitleInput" placeholder="Chapter title..." />
+            <button class="btn btn-danger btn-sm" id="deleteChBtn">Delete</button>
+          </div>
+          <div class="tone-panel" id="tonePanel">
+            <div class="tone-group"><span class="tone-label">Pacing</span><select class="tone-select" id="tonePacing"></select></div>
+            <div class="tone-group"><span class="tone-label">Prose</span><select class="tone-select" id="toneProse"></select></div>
+            <div class="tone-group"><span class="tone-label">Mood</span><select class="tone-select" id="toneMood"></select></div>
+          </div>
+          <div class="continuity-banner" id="continuityBanner">
+            <div class="continuity-banner-head"><span class="continuity-banner-title">&#9888; Continuity Issues</span><button class="continuity-dismiss" id="continuityDismiss">&#215;</button></div>
+            <div id="continuityText"></div>
+          </div>
+          <textarea class="editor-textarea" id="chEditor" placeholder="Write here, or switch to AI Chat to brainstorm ideas first."></textarea>
+          <div id="continueDraftArea">
+            <div class="continue-draft-head">Generated continuation<button class="btn btn-danger btn-sm" id="continueBtnDiscard" style="padding:2px 8px;min-height:22px;font-size:0.68rem">Discard</button></div>
+            <div class="continue-draft-body" id="continueDraftBody"></div>
+            <div class="continue-draft-actions">
+              <button class="draft-btn draft-btn-write" id="continueBtnWrite">Write to story</button>
+              <button class="draft-btn draft-btn-append" id="continueBtnAppend">Append to story</button>
+            </div>
+          </div>
+          <div class="editor-footer">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="wc-label" id="wcLabel">0 words</span>
+              <span class="autosave-label" id="autosaveLabel">Autosaved</span>
+            </div>
+            <div class="footer-btns">
+              <button class="continue-btn" id="continueBtn">Continue writing</button>
+              <button class="save-btn" id="saveChBtn">Save chapter</button>
+            </div>
+          </div>
+        </div>
+        <div id="chatPanelInline" style="display:none"></div>
+      </div>
+    </div>
+    <div class="chat-col" id="chatCol"></div>
+  </div>
+</div>
+<div class="tab-panel" id="tab-characters">
+  <div class="page-header">
+    <div><div class="page-title">Characters</div><div class="page-sub">Auto-updated when you save a chapter</div></div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button class="btn" id="syncCharsBtn">Sync from chapter</button>
+      <button class="btn btn-primary" id="addCharBtn">+ Add</button>
+    </div>
+  </div>
+  <div class="chars-grid" id="charsGrid"></div>
+</div>
+<div class="tab-panel" id="tab-lorebook">
+  <div class="page-header">
+    <div><div class="page-title">Lorebook</div><div class="page-sub">Places, factions, history &amp; world rules</div></div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button class="btn" id="syncLoreBtn">Sync from chapter</button>
+      <button class="btn btn-primary" id="addLoreBtn">+ Add</button>
+    </div>
+  </div>
+  <div class="lore-layout">
+    <div class="lore-nav" id="loreNav"></div>
+    <div class="lore-entries" id="loreEntries"></div>
+  </div>
+</div>
+<div class="tab-panel" id="tab-settings">
+  <div style="font-family:var(--font-story);font-size:1.3rem;font-weight:500;margin-bottom:18px">Settings</div>
+  <div class="settings-col">
+    <div class="s-card"><div class="s-card-head">OpenRouter API</div><div class="s-body">
+      <div class="field"><label class="flabel">API Key</label><input class="finput" type="password" id="apiKeyInput" placeholder="sk-or-v1-..." /><div class="fhint">Free key at <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a>. Stored locally, never synced.</div></div>
+      <div class="field"><label class="flabel">AI Model</label><select class="fselect" id="modelSel"><option value="deepseek/deepseek-r1:free">DeepSeek R1 — Free tier</option><option value="deepseek/deepseek-chat">DeepSeek V3 — Great for fiction</option><option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B — Free</option><option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B — High quality</option><option value="mistralai/mistral-7b-instruct:free">Mistral 7B — Free</option><option value="anthropic/claude-sonnet-4">Claude Sonnet 4</option><option value="openai/gpt-4o">GPT-4o</option><option value="custom">Custom model ID...</option></select></div>
+      <div class="field" id="customModelField" style="display:none"><label class="flabel">Custom Model ID</label><input class="finput" id="customModelInput" placeholder="provider/model-name" /><div class="fhint">Browse at <a href="https://openrouter.ai/models" target="_blank">openrouter.ai/models</a></div></div>
+      <button class="btn btn-primary" id="saveApiBtn">Save API settings</button>
+    </div></div>
+    <div class="s-card"><div class="s-card-head">Cloud Sync — GitHub Gist</div><div class="s-body">
+      <p style="font-size:0.82rem;color:var(--muted);line-height:1.65">Sync across mobile, browser &amp; desktop. API key is <strong>never</strong> synced.</p>
+      <div id="syncNotConnected"><div class="field"><label class="flabel">GitHub personal access token</label><input class="finput" type="password" id="githubToken" placeholder="ghp_..." /><div class="fhint">Create at <a href="https://github.com/settings/tokens/new?scopes=gist&description=Inkwell+Sync" target="_blank">github.com/settings/tokens</a> — only the <strong>gist</strong> scope needed.</div></div><button class="btn btn-primary" id="connectSyncBtn">Connect &amp; sync</button></div>
+      <div id="syncConnected" style="display:none;flex-direction:column;gap:10px">
+        <div class="sync-status ok" id="syncStatusBlock"><div class="sync-text"><strong>Connected to GitHub Gist</strong><span id="syncLastSynced">Never synced</span><span id="syncSummary"></span></div></div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn btn-primary" id="pushSyncBtn">Push to cloud</button><button class="btn" id="pullSyncBtn">Pull from cloud</button><button class="btn btn-danger btn-sm" id="disconnectBtn">Disconnect</button></div>
+        <div class="field"><label class="flabel">Auto-sync after each save</label><select class="fselect" id="autoSync"><option value="yes">Yes</option><option value="no" selected>No — manual only</option></select></div>
+      </div>
+    </div></div>
+    <div class="s-card"><div class="s-card-head">Story Bible <span id="bibleProjLbl" style="font-family:var(--font-mono);font-size:0.62rem;color:var(--muted);font-weight:400;margin-left:5px"></span></div><div class="s-body">
+      <div class="field"><label class="flabel">Story title</label><input class="finput" id="storyTitle" placeholder="My novel..." /></div>
+      <div class="field"><label class="flabel">Genre &amp; tone</label><input class="finput" id="storyGenre" placeholder="e.g. Dark fantasy, gritty, third-person limited..." /></div>
+      <div class="field"><label class="flabel">World &amp; premise</label><textarea class="ftextarea" id="storyPremise" placeholder="World overview, conflict, theme. AI reads this every time."></textarea></div>
+      <div class="field"><label class="flabel">Writing style notes</label><textarea class="ftextarea" style="min-height:64px" id="storyStyle" placeholder="e.g. Write like Ursula Le Guin. No adverbs."></textarea></div>
+      <button class="btn btn-primary" id="saveBibleBtn">Save story bible</button>
+    </div></div>
+    <div class="s-card"><div class="s-card-head">Generation settings</div><div class="s-body">
+      <div class="field"><label class="flabel">Chapter length</label><select class="fselect" id="chLenSel"><option value="short">Short ~500 words</option><option value="medium" selected>Medium ~1,000 words</option><option value="long">Long ~2,000 words</option><option value="verylong">Very long ~3,500 words</option></select></div>
+      <div class="field"><label class="flabel">Draft length (Continue Writing)</label><select class="fselect" id="draftLenSel"><option value="short">Short ~500 words</option><option value="medium">Medium ~1,000 words</option><option value="long">Long ~2,000 words</option><option value="verylong" selected>Very long ~3,500 words</option><option value="extended">Extended ~5,000 words</option><option value="epic">Epic ~7,000 words</option></select><div class="fhint">Longer drafts take more time and tokens. Not all models support very long outputs.</div></div>
+      <div class="field"><label class="flabel">Chapter summaries to include</label><select class="fselect" id="ctxChSel"><option value="1">Last chapter only</option><option value="3" selected>Last 3 chapters</option><option value="5">Last 5 chapters</option><option value="all">All chapters</option></select></div>
+      <button class="btn btn-primary" id="saveGenBtn">Save</button>
+    </div></div>
+    <div class="s-card"><div class="s-card-head">Export story</div><div class="s-body">
+      <p style="font-size:0.82rem;color:var(--muted);line-height:1.65">Includes all chapters plus character &amp; lore appendices.</p>
+      <div class="export-grid"><div class="export-tile" id="exportPdfBtn"><div class="export-tile-title">PDF</div><div class="export-tile-desc">Opens print dialog</div></div><div class="export-tile" id="exportDocBtn"><div class="export-tile-title">Word</div><div class="export-tile-desc">Downloads .doc file</div></div></div>
+    </div></div>
+    <div class="s-card"><div class="s-card-head">Backup</div><div class="s-body">
+      <p style="font-size:0.82rem;color:var(--muted);line-height:1.65">All data is in your browser. Export a JSON backup to keep it safe.</p>
+      <div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn" id="exportJsonBtn">Export all projects</button><button class="btn" id="importJsonBtn">Import backup</button><button class="btn btn-danger btn-sm" id="clearProjBtn">Clear project</button></div>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+    </div></div>
+  </div>
+</div>
+</main>
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bnav-btn active" data-tab="story">Story</button>
+  <button class="bnav-btn" data-tab="characters">Cast</button>
+  <button class="bnav-btn" data-tab="lorebook">Lore</button>
+  <button class="bnav-btn" data-tab="settings">Settings</button>
+</nav>
+<div class="modal-back" id="charModal"><div class="modal"><div class="modal-head"><div class="modal-title" id="charModalTitle">Add character</div><button class="icon-btn" onclick="closeModal('charModal')">&#215;</button></div><div class="modal-body"><div class="field"><label class="flabel">Name *</label><input class="finput" id="cName" /></div><div class="field"><label class="flabel">Role</label><input class="finput" id="cRole" placeholder="Protagonist, Antagonist..." /></div><div class="field"><label class="flabel">Appearance</label><textarea class="ftextarea" style="min-height:56px" id="cAppear"></textarea></div><div class="field"><label class="flabel">Personality &amp; motivations</label><textarea class="ftextarea" style="min-height:56px" id="cPersonality"></textarea></div><div class="field"><label class="flabel">Current arc / status</label><textarea class="ftextarea" style="min-height:46px" id="cStatus"></textarea></div><div class="field"><label class="flabel">Relationships</label><textarea class="ftextarea" style="min-height:46px" id="cRelations"></textarea></div><input type="hidden" id="cEditId" /></div><div class="modal-foot"><button class="btn" onclick="closeModal('charModal')">Cancel</button><button class="btn btn-primary" id="saveCharBtn">Save</button></div></div></div>
+<div class="modal-back" id="loreModal"><div class="modal"><div class="modal-head"><div class="modal-title" id="loreModalTitle">Add lore entry</div><button class="icon-btn" onclick="closeModal('loreModal')">&#215;</button></div><div class="modal-body"><div class="field"><label class="flabel">Name *</label><input class="finput" id="lName" /></div><div class="field"><label class="flabel">Category</label><select class="fselect" id="lCat"><option>World</option><option>Location</option><option>Faction</option><option>History</option><option>Magic / Tech</option><option>Item</option><option>Other</option></select></div><div class="field"><label class="flabel">Description</label><textarea class="ftextarea" id="lDesc"></textarea></div><input type="hidden" id="lEditId" /></div><div class="modal-foot"><button class="btn" onclick="closeModal('loreModal')">Cancel</button><button class="btn btn-primary" id="saveLoreEntryBtn">Save</button></div></div></div>
+<div class="modal-back" id="projNameModal"><div class="modal"><div class="modal-head"><div class="modal-title" id="projNameTitle">New project</div><button class="icon-btn" onclick="closeModal('projNameModal')">&#215;</button></div><div class="modal-body"><div class="field"><label class="flabel">Project name</label><input class="finput" id="projNameInput" placeholder="My novel..." /></div></div><div class="modal-foot"><button class="btn" onclick="closeModal('projNameModal')">Cancel</button><button class="btn btn-primary" id="saveProjNameBtn">Create</button></div></div></div>
+<!-- FANFIC UPLOAD MODAL -->
+<div class="modal-back" id="fanficModal">
+  <div class="modal modal-wide">
+    <div class="modal-head"><span class="modal-title">Fanfic Mode — Import Source Material</span><button class="btn btn-sm" onclick="closeModal('fanficModal')">&#215;</button></div>
+    <div class="modal-body">
+      <p style="font-size:0.82rem;color:var(--muted);line-height:1.6">Upload one or more PDFs or text files from the same series. The AI will extract characters, world-building, and writing style as your fanfic foundation.</p>
+      <div class="fanfic-upload-zone" id="fanficDropZone">
+        <div style="font-size:1.4rem">&#128218;</div>
+        <strong style="font-size:0.86rem">Drop PDFs / text files here or click to browse</strong>
+        <p>Multiple files supported — treated as one series</p>
+        <input type="file" id="fanficFileInput" accept=".pdf,.txt,.md" multiple style="display:none">
+      </div>
+      <div class="fanfic-file-list" id="fanficFileList"></div>
+      <div class="field"><label class="flabel">Project name for this fanfic</label><input class="finput" id="fanficProjName" placeholder="e.g. My HP Fan Story" /></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('fanficModal')">Cancel</button>
+      <button class="btn btn-primary" id="fanficExtractBtn">Extract &amp; Review &#8594;</button>
+    </div>
+  </div>
+</div>
+<!-- FANFIC REVIEW MODAL -->
+<div class="modal-back" id="fanficReviewModal">
+  <div class="modal modal-wide">
+    <div class="modal-head"><span class="modal-title">Review Extracted Content</span></div>
+    <div class="modal-body">
+      <p style="font-size:0.82rem;color:var(--muted);line-height:1.6">Review what the AI extracted. Uncheck items you don't want to import.</p>
+      <div id="fanficReviewSection"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('fanficReviewModal');openModal('fanficModal');">&#8592; Back</button>
+      <button class="btn btn-primary" id="fanficImportBtn">Import to project &#8594;</button>
+    </div>
+  </div>
+</div>
+<div class="toast-zone" id="toastZone"></div>
+<script>
+'use strict';
+const CFG={storageKey:'inkwell_v3',syncFile:'inkwell-sync.json',maxChatHist:40,autosaveMs:30000,maxDraftHistory:3,chLengths:{short:'~500 words',medium:'~1,000 words',long:'~2,000 words',verylong:'~3,500 words'},draftLengths:{short:'~500 words',medium:'~1,000 words',long:'~2,000 words',verylong:'~3,500 words',extended:'~5,000 words',epic:'~7,000 words'},tonePresets:{pacing:['Slow burn','Steady','Fast-paced','Urgent'],prose:['Sparse','Balanced','Rich','Lyrical'],mood:['Tense','Melancholic','Hopeful','Dark','Playful']},starters:['Write an opening scene','What should happen next?','Give me a plot twist','Describe this location','Write dialogue between characters'],loreCats:['All','World','Location','Faction','History','Magic / Tech','Item','Other'],charColors:['#b85c38','#4d8f63','#4a90d9','#9b59b6','#c0392b','#16a085','#d35400','#2e86c1'],prompts:{continuityCheck(ch,chars,lore,prevSummaries){return'You are a fiction continuity editor. Read the chapter below and check it against the established facts.\n\nCHARACTERS:\n'+chars+'\n\nLORE & WORLD FACTS:\n'+lore+'\n\nPREVIOUS CHAPTER SUMMARIES:\n'+prevSummaries+'\n\nCHAPTER TO CHECK:\n'+ch.content+'\n\nIdentify any continuity issues: character trait contradictions, timeline inconsistencies, world-rule violations, factual errors vs established lore, or POV/name slips. Be specific — quote the offending passage and explain the conflict. If there are no issues, say so briefly. Respond in plain prose, no JSON.';},
+rewriteDraft(originalDraft,style){return'Rewrite the following story draft in the same style, voice, and narrative direction. Do not change the plot — same events, same characters, same scene. Just write it fresh.\n\nOriginal draft:\n---\n'+originalDraft+'\n---\n\nWrite the rewrite now. Output prose only, no preamble.';},
+expandDraft(originalDraft,ctx){return'The following is a story draft that needs to be expanded into a longer, more detailed version. Keep all plot events, characters, and the overall narrative arc. Add more scene detail, dialogue, interiority, sensory description, and pacing. Do not add new plot events that contradict the original.\n\nContext:\n'+ctx+'\n\nOriginal draft:\n---\n'+originalDraft+'\n---\n\nWrite the expanded version now. Output prose only, no preamble.';},
+fanficExtract(text,existingChars,existingLore){return'You are a fiction analyst. Read the following source text and extract rich, detailed information for a fanfiction writing tool.\n\nExtract:\n1. CHARACTERS — for each character: name, role (protagonist/antagonist/supporting), detailed appearance, detailed personality traits, speech patterns, motivations, status, and relationships to other characters.\n2. LOREBOOK — for each significant location, faction, organisation, magic system, technology, cultural element, historical event, or world rule: name, category (Place/Faction/Magic/Technology/History/Rule/Object/Other), and a thorough description.\n3. WRITING STYLE — analyse the prose: sentence rhythm, vocabulary level, narrative POV, tense, dialogue style, descriptive density, tone.\n4. STORY BIBLE — title (infer if not stated), genre, a 2-3 sentence premise, and a style guide paragraph.\n\nExisting characters to update rather than duplicate: '+existingChars+'\nExisting lore to update rather than duplicate: '+existingLore+'\n\nSource text (may be truncated):\n---\n'+text.slice(0,12000)+'\n---\n\nRespond ONLY with a JSON object, no markdown fences:\n{"characters":[{"name":"","role":"","appearance":"","personality":"","speechPattern":"","motivations":"","status":"","relations":"","isNew":true}],"lore":[{"name":"","category":"","description":"","isNew":true}],"bible":{"title":"","genre":"","premise":"","style":""},"extractedStyle":""}';},
+chatSystem(bible){let s='You are a collaborative fiction writing assistant.\nWhen the user asks for ideas or analysis, respond in well-structured prose with natural paragraph breaks — never write a single wall of text. Use multiple paragraphs to organise your thoughts clearly.\nWhen you write story prose, wrap it in <story_draft> and </story_draft> tags.\nOne draft block per response. Keep your conversational text outside draft tags concise and well-paragraphed.';if(bible?.genre)s+='\nGenre/tone: '+bible.genre;if(bible?.style)s+='\nStyle: '+bible.style;if(bible?.premise)s+='\nPremise: '+bible.premise.slice(0,400);return s;},summarise:ch=>'Summarise this chapter in 3-5 sentences covering key events and character moments.\n\nChapter: "'+ch.title+'"\n\n'+ch.content,loreExtract(ch,ec,el){return'Extract characters and world-building lore from this chapter in rich detail. Return ONLY valid JSON — no markdown, no preamble.\n\nExisting characters (update, do not duplicate): '+(ec||'none')+'\nExisting lore (update, do not duplicate): '+(el||'none')+'\nChapter: "'+ch.title+'"\n---\n'+ch.content+'\n---\n\nFor characters include: name, role (protagonist/antagonist/supporting/minor), appearance (physical details), personality (traits, quirks, voice), status (current situation in this chapter), relations (to other named characters). For lore include every significant location, organisation, faction, magic system, technology, cultural detail, historical reference, or world rule — with a thorough description.\n\n{"characters":[{"name":"","role":"","appearance":"","personality":"","status":"","relations":"","isNew":true}],"lore":[{"name":"","category":"Place|Faction|Magic|Technology|History|Rule|Object|Other","description":"","isNew":true}]}';},continueWriting(ctx,ch,len){return ctx+'\n\nCurrent chapter: "'+ch.title+'"\n'+(ch.content?'Text so far:\n---\n'+ch.content.slice(-2000)+'\n---':'(empty — write an opening scene)')+'\n\nContinue the story. Target: '+len+'. Story prose only — no preamble. Begin immediately.';}}};
+
+let S={projects:[],activeProjectId:null,chatHistory:{},g:{apiKey:'',model:'deepseek/deepseek-r1:free',customModel:'',chapterLength:'medium',draftLength:'verylong',contextChapters:'3',githubToken:'',gistId:'',autoSync:'no',lastSynced:null}};
+let activeChId=null,activeLoreCat='All',activeSubTab='write',projModalMode='new',projModalTarget=null,autosaveTimer=null,scenesOpen=false,chatAbortController=null;
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const wc=t=>t?t.trim().split(/\s+/).filter(Boolean).length:0;
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const gs=()=>S.g;
+const proj=()=>S.projects.find(p=>p.id===S.activeProjectId)||null;
+function charInitials(n){return(n||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');}
+function charColor(n){let h=0;for(let i=0;i<n.length;i++)h=(Math.imul(31,h)+n.charCodeAt(i))|0;return CFG.charColors[Math.abs(h)%CFG.charColors.length];}
+function toast(msg,type='info'){const el=document.createElement('div');el.className='toast toast-'+type;el.textContent=msg;document.getElementById('toastZone').appendChild(el);setTimeout(()=>el.remove(),3500);}
+function mkProj(name){name=name||'Untitled Story';return{id:uid(),name,chapters:[],characters:[],lorebook:[],bible:{title:name,genre:'',premise:'',style:''}};}
+function mkChapter(i){return{id:uid(),title:'Chapter '+i,content:'',summary:'',wordCount:0,scenes:[],tone:{pacing:'Steady',prose:'Balanced',mood:'Hopeful'},draftHistory:[]};}
+
+/* THEME */
+function applyTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem('inkwell_theme',t);document.getElementById('themeToggle').textContent=t==='dark'?'Light':'Dark';const tc=document.getElementById('themeColor');if(tc)tc.content=t==='dark'?'#1C1C1C':'#D97940';}
+document.getElementById('themeToggle').addEventListener('click',()=>applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+applyTheme(localStorage.getItem('inkwell_theme')||'light');
+
+/* STORAGE */
+function save(){trimChatHistory();localStorage.setItem(CFG.storageKey,JSON.stringify(S));if(gs().autoSync==='yes'&&gs().githubToken)pushSync(true);}
+function load(){
+  const raw=localStorage.getItem(CFG.storageKey);
+  if(raw){try{const stored=JSON.parse(raw);S=Object.assign({},S,stored);if(!S.chatHistory)S.chatHistory={};S.projects.forEach(p=>p.chapters.forEach(ch=>{if(!ch.scenes)ch.scenes=[];if(!ch.tone)ch.tone={pacing:'Steady',prose:'Balanced',mood:'Hopeful'};if(!ch.draftHistory)ch.draftHistory=[];}));return;}catch(e){}}
+  const v2=localStorage.getItem('inkwell_v2');
+  if(v2){try{const o=JSON.parse(v2);S.projects=(o.projects||[]).map(p=>Object.assign({},p,{chapters:(p.chapters||[]).map(ch=>Object.assign({},ch,{scenes:ch.scenes||[]}))}));S.activeProjectId=o.activeProjectId;S.g=Object.assign({},S.g,o.globalSettings||o.g||{});save();return;}catch(e){}}
+  const p=mkProj('My First Story');S.projects=[p];S.activeProjectId=p.id;save();
+}
+function trimChatHistory(){Object.keys(S.chatHistory).forEach(k=>{if(S.chatHistory[k].length>CFG.maxChatHist)S.chatHistory[k]=S.chatHistory[k].slice(-CFG.maxChatHist);});}
+function silentSave(){const p=proj();if(!p||!activeChId)return;const ch=p.chapters.find(c=>c.id===activeChId);if(!ch)return;ch.title=document.getElementById('chTitleInput').value||'Untitled';ch.content=document.getElementById('chEditor').value;ch.wordCount=wc(ch.content);save();renderChList();updateStats();const lbl=document.getElementById('autosaveLabel');lbl.classList.add('show');setTimeout(()=>lbl.classList.remove('show'),2200);}
+
+/* SYNC */
+async function findOrCreateGist(token){const res=await fetch('https://api.github.com/gists?per_page=100',{headers:{Authorization:'token '+token}});const list=await res.json();if(!Array.isArray(list))throw new Error('GitHub auth failed.');const found=list.find(g=>g.files&&g.files[CFG.syncFile]);if(found)return found.id;const cr=await fetch('https://api.github.com/gists',{method:'POST',headers:{Authorization:'token '+token,'Content-Type':'application/json'},body:JSON.stringify({description:'Inkwell sync',public:false,files:{[CFG.syncFile]:{content:JSON.stringify({inkwellVersion:1,projects:[],syncedAt:new Date().toISOString()})}}})});const g=await cr.json();if(!g.id)throw new Error('Could not create Gist.');return g.id;}
+async function fetchGistData(token,gistId){const res=await fetch('https://api.github.com/gists/'+gistId,{headers:{Authorization:'token '+token}});const gist=await res.json();const raw=gist.files&&gist.files[CFG.syncFile]&&gist.files[CFG.syncFile].content;if(!raw)return null;try{return JSON.parse(raw);}catch(e){return null;}}
+function summarizeProjects(projects){let chapters=0,words=0;(projects||[]).forEach(function(p){chapters+=(p.chapters||[]).length;(p.chapters||[]).forEach(function(ch){words+=ch.wordCount||0;});});return{projects:(projects||[]).length,chapters:chapters,words:words};}
+function summaryText(sum){if(!sum)return'';return sum.projects+' project'+(sum.projects!==1?'s':'')+', '+sum.chapters+' chapter'+(sum.chapters!==1?'s':'')+', '+sum.words.toLocaleString()+' words';}
+function hasMeaningfulData(projects){return(projects||[]).some(function(p){return(p.chapters&&p.chapters.length)||(p.characters&&p.characters.length)||(p.lorebook&&p.lorebook.length);});}
+function applyCloudData(data,token,gistId){if(data.projects)S.projects=data.projects.map(function(p){return Object.assign({},p,{chapters:(p.chapters||[]).map(function(ch){return Object.assign({},ch,{scenes:ch.scenes||[]});})});});if(data.g){const k=gs().apiKey;S.g=Object.assign({},gs(),data.g,{apiKey:k,githubToken:token,gistId:gistId});}gs().lastSynced=new Date().toISOString();gs().cloudSummary=summarizeProjects(S.projects);save();activeChId=null;renderProjDropdown();renderChList();updateStats();document.getElementById('editorEmpty').style.display='flex';document.getElementById('editorActive').style.display='none';}
+async function pushSync(silent){if(!silent)setSyncPill('syncing','Pushing...');const token=gs().githubToken;if(!token)return;try{if(!gs().gistId)gs().gistId=await findOrCreateGist(token);const payload=JSON.stringify({inkwellVersion:1,syncedAt:new Date().toISOString(),projects:S.projects,g:{model:gs().model,customModel:gs().customModel,chapterLength:gs().chapterLength,contextChapters:gs().contextChapters}},null,2);await fetch('https://api.github.com/gists/'+gs().gistId,{method:'PATCH',headers:{Authorization:'token '+token,'Content-Type':'application/json'},body:JSON.stringify({files:{[CFG.syncFile]:{content:payload}}})});gs().lastSynced=new Date().toISOString();gs().cloudSummary=summarizeProjects(S.projects);save();setSyncPill('synced','Synced');if(!silent){toast('Pushed to cloud','ok');updateSyncUI();}}catch(e){setSyncPill('','Error');if(!silent)toast('Push failed: '+e.message,'err');}}
+async function pullSync(){setSyncPill('syncing','Pulling...');const token=gs().githubToken;if(!token)return;try{if(!gs().gistId)gs().gistId=await findOrCreateGist(token);const data=await fetchGistData(token,gs().gistId);if(!data)throw new Error('No sync data.');applyCloudData(data,token,gs().gistId);setSyncPill('synced','Synced');updateSyncUI();toast('Pulled from cloud','ok');}catch(e){setSyncPill('','Error');toast('Pull failed: '+e.message,'err');}}
+function setSyncPill(state,label){const el=document.getElementById('syncPill');el.className='sync-pill'+(state==='syncing'?' syncing':state==='synced'?' synced':'');el.textContent=label;}
+function updateSyncUI(){const c=!!gs().githubToken;document.getElementById('syncNotConnected').style.display=c?'none':'block';document.getElementById('syncConnected').style.display=c?'flex':'none';if(c){document.getElementById('syncLastSynced').textContent='Last synced: '+(gs().lastSynced?new Date(gs().lastSynced).toLocaleString():'Never');var summEl=document.getElementById('syncSummary');if(summEl)summEl.textContent=gs().cloudSummary?('Cloud has: '+summaryText(gs().cloudSummary)):'';document.getElementById('autoSync').value=gs().autoSync||'no';setSyncPill('synced','Synced');}else setSyncPill('','Not connected');}
+
+/* API */
+function getModel(){const s=gs();return s.model==='custom'?(s.customModel||'deepseek/deepseek-r1:free'):(s.model||'deepseek/deepseek-r1:free');}
+async function callAI(messages,maxTokens){maxTokens=maxTokens||2000;const key=gs().apiKey;if(!key)throw new Error('No API key — add yours in Settings first.');const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+key,'HTTP-Referer':'https://inkwell.app','X-Title':'Inkwell'},body:JSON.stringify({model:getModel(),max_tokens:maxTokens,messages:messages})});if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e&&e.error&&e.error.message)||'API error '+res.status);}const data=await res.json();return(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||'';}
+async function callAIStream(messages,onChunk,maxTokens,signal){maxTokens=maxTokens||3000;const key=gs().apiKey;if(!key)throw new Error('No API key — add yours in Settings first.');const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+key,'HTTP-Referer':'https://inkwell.app','X-Title':'Inkwell'},body:JSON.stringify({model:getModel(),max_tokens:maxTokens,stream:true,messages:messages}),signal:signal||null});if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e&&e.error&&e.error.message)||'API error '+res.status);}const reader=res.body.getReader();const dec=new TextDecoder();let buf='',full='';try{while(true){const rd=await reader.read();if(rd.done)break;buf+=dec.decode(rd.value,{stream:true});const lines=buf.split('\n');buf=lines.pop()||'';for(const line of lines){if(!line.startsWith('data: '))continue;const data=line.slice(6).trim();if(data==='[DONE]')continue;try{const chunk=JSON.parse(data);const c=(chunk.choices&&chunk.choices[0]&&chunk.choices[0].delta&&chunk.choices[0].delta.content)||'';if(c){full+=c;onChunk(c,full);}}catch(e){}}}}catch(e){if(e.name==='AbortError')return full;throw e;}return full;}
+function extractJSON(text){const clean=text.replace(/```json|```/g,'').trim();const s=clean.indexOf('{'),e=clean.lastIndexOf('}');if(s===-1||e===-1)throw new Error('No JSON');return JSON.parse(clean.slice(s,e+1));}
+function setStatus(s){document.getElementById('sdot').className='sdot'+(s==='ok'?' ok':s==='busy'?' busy':s==='err'?' err':'');const labels={ok:'Ready',busy:'Writing...',err:'Error','':'No key'};document.getElementById('stext').textContent=labels[s]||s;}
+
+/* PROJECTS */
+function renderProjDropdown(){document.getElementById('curProjName').textContent=(proj()&&proj().name)||'No project';document.getElementById('projList').innerHTML=S.projects.map(function(x){return'<div class="pdrop-item '+(x.id===S.activeProjectId?'active':'')+'" data-pid="'+x.id+'"><div class="pdrop-dot"></div><span class="pdrop-name">'+esc(x.name)+'</span><div class="pdrop-acts"><button class="pmini" onclick="openRenameProj(\''+x.id+'\',event)">&#9998;</button>'+(S.projects.length>1?'<button class="pmini" style="color:var(--blush)" onclick="deleteProj(\''+x.id+'\',event)">&#215;</button>':'')+'</div></div>';}).join('');document.querySelectorAll('.pdrop-item').forEach(function(el){el.addEventListener('click',function(){switchProj(el.dataset.pid);});});}
+function switchProj(id){S.activeProjectId=id;activeChId=null;activeLoreCat='All';document.getElementById('pdrop').classList.remove('open');save();renderProjDropdown();renderChList();updateStats();document.getElementById('editorEmpty').style.display='flex';document.getElementById('editorActive').style.display='none';setView('list');toast('Switched to "'+(proj()&&proj().name)+'"');}
+function openRenameProj(id,e){e.stopPropagation();document.getElementById('pdrop').classList.remove('open');const p=S.projects.find(function(x){return x.id===id;});if(!p)return;projModalMode='rename';projModalTarget=id;document.getElementById('projNameTitle').textContent='Rename project';document.getElementById('projNameInput').value=p.name;openModal('projNameModal');}
+function deleteProj(id,e){e.stopPropagation();document.getElementById('pdrop').classList.remove('open');const p=S.projects.find(function(x){return x.id===id;});if(!confirm('Delete "'+(p&&p.name)+'"?'))return;p.chapters.forEach(function(ch){delete S.chatHistory[ch.id];});S.projects=S.projects.filter(function(x){return x.id!==id;});if(S.activeProjectId===id)S.activeProjectId=(S.projects[0]&&S.projects[0].id)||null;if(!S.projects.length){const np=mkProj();S.projects=[np];S.activeProjectId=np.id;}save();renderProjDropdown();renderChList();updateStats();document.getElementById('editorEmpty').style.display='flex';document.getElementById('editorActive').style.display='none';}
+document.getElementById('projBtn').addEventListener('click',function(e){e.stopPropagation();document.getElementById('pdrop').classList.toggle('open');renderProjDropdown();});
+document.addEventListener('click',function(){document.getElementById('pdrop').classList.remove('open');});
+document.getElementById('pdrop').addEventListener('click',function(e){e.stopPropagation();});
+document.getElementById('newProjBtn').addEventListener('click',function(){document.getElementById('pdrop').classList.remove('open');projModalMode='new';projModalTarget=null;document.getElementById('projNameTitle').textContent='New project';document.getElementById('projNameInput').value='';openModal('projNameModal');});
+document.getElementById('saveProjNameBtn').addEventListener('click',function(){const name=document.getElementById('projNameInput').value.trim();if(!name){toast('Enter a name','err');return;}if(projModalMode==='new'){const p=mkProj(name);S.projects.push(p);S.activeProjectId=p.id;activeChId=null;save();renderProjDropdown();renderChList();updateStats();document.getElementById('editorEmpty').style.display='flex';document.getElementById('editorActive').style.display='none';toast('"'+name+'" created','ok');}else{const p=S.projects.find(function(x){return x.id===projModalTarget;});if(p){p.name=name;save();renderProjDropdown();toast('Renamed','ok');}}closeModal('projNameModal');});
+
+/* CHAPTERS */
+function chStatus(ch){return!ch.content||!ch.content.trim()?'empty':ch.summary?'ready':'draft';}
+function renderChList(){const p=proj();const el=document.getElementById('chList');if(!p||!p.chapters.length){el.innerHTML='<div style="padding:18px 16px;color:var(--muted);font-size:0.79rem;line-height:1.65">No chapters yet.<br>Tap <strong>+</strong> to add one.</div>';return;}el.innerHTML=p.chapters.map(function(ch,i){const st=chStatus(ch);return'<div class="ch-item status-'+st+' '+(ch.id===activeChId?'active':'')+'" data-id="'+ch.id+'"><span class="ch-num">'+(i+1)+'</span><div class="ch-sdot"></div><div class="ch-info"><div class="ch-title">'+esc(ch.title||'Untitled')+'</div><div class="ch-meta">'+((ch.wordCount||0).toLocaleString())+' words</div></div></div>';}).join('');el.querySelectorAll('.ch-item').forEach(function(el){el.addEventListener('click',function(){openChapter(el.dataset.id);setView('detail');});});}
+function openChapter(id){activeChId=id;const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===id;});if(!ch)return;const idx=p.chapters.indexOf(ch);document.getElementById('editorEmpty').style.display='none';document.getElementById('editorActive').style.display='flex';document.getElementById('chNumBadge').textContent='Ch. '+(idx+1);document.getElementById('chTitleInput').value=ch.title||'';document.getElementById('chEditor').value=ch.content||'';document.getElementById('continueDraftArea').style.display='none';document.getElementById('continuityBanner').classList.remove('show');updateWC();renderChList();renderScenes(ch);renderTonePanel(ch);initChatPanels(id);if(activeSubTab==='chat')document.getElementById('chatPanelInline').style.display='block';}
+function renderTonePanel(ch){if(!ch.tone)ch.tone={pacing:'Steady',prose:'Balanced',mood:'Hopeful'};['pacing','prose','mood'].forEach(function(k){const sel=document.getElementById('tone'+k.charAt(0).toUpperCase()+k.slice(1));if(!sel)return;sel.innerHTML=CFG.tonePresets[k].map(function(v){return'<option value="'+v+'"'+(ch.tone[k]===v?' selected':'')+'>'+v+'</option>';}).join('');sel.onchange=function(){ch.tone[k]=sel.value;clearTimeout(autosaveTimer);autosaveTimer=setTimeout(silentSave,2000);};});}
+document.getElementById('continuityDismiss').addEventListener('click',function(){document.getElementById('continuityBanner').classList.remove('show');});
+function saveCh(){const p=proj();if(!p||!activeChId)return;const ch=p.chapters.find(function(c){return c.id===activeChId;});if(!ch)return;ch.title=document.getElementById('chTitleInput').value||'Untitled';ch.content=document.getElementById('chEditor').value;ch.wordCount=wc(ch.content);save();renderChList();updateStats();}
+function updateWC(){document.getElementById('wcLabel').textContent=wc(document.getElementById('chEditor').value).toLocaleString()+' words';}
+document.getElementById('chEditor').addEventListener('input',function(){updateWC();clearTimeout(autosaveTimer);autosaveTimer=setTimeout(silentSave,CFG.autosaveMs);});
+document.getElementById('chEditor').addEventListener('focus',function(){document.getElementById('storyGrid').classList.add('editor-focused');});
+document.getElementById('chEditor').addEventListener('blur',function(){document.getElementById('storyGrid').classList.remove('editor-focused');});
+document.getElementById('addChBtn').addEventListener('click',function(){const p=proj();if(!p)return;const ch=mkChapter(p.chapters.length+1);p.chapters.push(ch);save();renderChList();openChapter(ch.id);setView('detail');updateStats();});
+document.getElementById('deleteChBtn').addEventListener('click',function(){const p=proj();if(!p||!activeChId)return;if(!confirm('Delete this chapter?'))return;delete S.chatHistory[activeChId];p.chapters=p.chapters.filter(function(c){return c.id!==activeChId;});activeChId=null;save();renderChList();updateStats();document.getElementById('editorEmpty').style.display='flex';document.getElementById('editorActive').style.display='none';setView('list');});
+document.getElementById('saveChBtn').addEventListener('click',async function(){const p=proj();if(!p||!activeChId)return;const ch=p.chapters.find(function(c){return c.id===activeChId;});if(!ch)return;saveCh();const btn=document.getElementById('saveChBtn');btn.innerHTML='<span class="spin"></span> Saving...';btn.disabled=true;btn.classList.add('saving');setStatus('busy');try{if(gs().apiKey&&ch.content&&ch.content.trim()){await autoUpdateLore(ch);}btn.innerHTML='Saved';btn.classList.remove('saving');setTimeout(function(){btn.innerHTML='Save chapter';btn.disabled=false;},2000);setStatus('ok');toast('Chapter saved'+(gs().apiKey&&ch.content&&ch.content.trim()?' & lore updated':''),'ok');}catch(e){btn.innerHTML='Save chapter';btn.disabled=false;btn.classList.remove('saving');setStatus('err');toast('Saved, lore update failed: '+e.message,'err');}renderChList();});
+
+/* SCENES */
+document.getElementById('sceneToggle').addEventListener('click',function(){scenesOpen=!scenesOpen;document.getElementById('sceneBody').classList.toggle('open',scenesOpen);document.getElementById('sceneCaret').classList.toggle('open',scenesOpen);});
+function renderScenes(ch){ch.scenes=ch.scenes||[];const cnt=ch.scenes.length;document.getElementById('sceneCountLabel').textContent=cnt?cnt+' scene'+(cnt!==1?'s':''):'';const body=document.getElementById('sceneBody');body.innerHTML=ch.scenes.map(function(sc,i){return'<div class="scene-row" data-sid="'+sc.id+'"><span class="scene-num">'+(i+1)+'</span><input class="scene-inp" placeholder="Scene goal or title..." value="'+esc(sc.title||'')+'" data-field="title" /><input class="scene-pov-inp" placeholder="POV" value="'+esc(sc.pov||'')+'" data-field="pov" /><button class="scene-del" data-sdel="'+sc.id+'">&#215;</button></div>';}).join('')+'<button class="scene-add-btn" id="sceneAddBtn2">+ Scene</button>';body.querySelectorAll('.scene-inp,.scene-pov-inp').forEach(function(inp){inp.addEventListener('input',function(){saveSceneField(inp);});});body.querySelectorAll('[data-sdel]').forEach(function(btn){btn.addEventListener('click',function(){deleteScene(btn.dataset.sdel);});});const b2=body.querySelector('#sceneAddBtn2');if(b2)b2.addEventListener('click',addScene);}
+function saveSceneField(inp){const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===activeChId;});if(!ch)return;const row=inp.closest('[data-sid]');const sid=row&&row.dataset.sid;if(!sid)return;const sc=ch.scenes.find(function(s){return s.id===sid;});if(!sc)return;sc[inp.dataset.field]=inp.value;clearTimeout(autosaveTimer);autosaveTimer=setTimeout(silentSave,2000);}
+function addScene(){const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===activeChId;});if(!ch)return;ch.scenes.push({id:uid(),title:'',pov:''});renderScenes(ch);if(!scenesOpen){scenesOpen=true;document.getElementById('sceneBody').classList.add('open');document.getElementById('sceneCaret').classList.add('open');}clearTimeout(autosaveTimer);autosaveTimer=setTimeout(silentSave,2000);}
+function deleteScene(sid){const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===activeChId;});if(!ch)return;ch.scenes=ch.scenes.filter(function(s){return s.id!==sid;});renderScenes(ch);clearTimeout(autosaveTimer);autosaveTimer=setTimeout(silentSave,2000);}
+
+/* CONTINUE WRITING */
+document.getElementById('continueBtn').addEventListener('click',async function(){if(!gs().apiKey){toast('Add API key in Settings','err');return;}const p=proj();if(!p||!activeChId)return;const ch=p.chapters.find(function(c){return c.id===activeChId;});if(!ch)return;const btn=document.getElementById('continueBtn'),area=document.getElementById('continueDraftArea'),body=document.getElementById('continueDraftBody');btn.disabled=true;btn.textContent='Writing...';area.style.display='none';body.textContent='';setStatus('busy');try{const ctx=buildCtx(activeChId);const len=CFG.draftLengths[gs().draftLength]||CFG.chLengths[gs().chapterLength]||'~3,500 words';area.style.display='block';const draftMaxTokens={short:800,medium:1600,long:3200,verylong:5500,extended:7500,epic:10000};const maxTok=draftMaxTokens[gs().draftLength]||5500;await callAIStream([{role:'system',content:'You are a skilled fiction writer. Write story prose only — no preamble.'},{role:'user',content:CFG.prompts.continueWriting(ctx,ch,len)}],function(chunk,full){body.textContent=full;body.scrollTop=body.scrollHeight;},maxTok);setStatus('ok');}catch(e){toast('Continue failed: '+e.message,'err');setStatus('err');area.style.display='none';}btn.disabled=false;btn.textContent='Continue writing';});
+document.getElementById('continueBtnWrite').addEventListener('click',function(){const text=document.getElementById('continueDraftBody').textContent.trim();if(!text)return;if(document.getElementById('chEditor').value.trim()&&!confirm('Replace existing chapter text?'))return;document.getElementById('chEditor').value=text;updateWC();document.getElementById('continueDraftArea').style.display='none';toast('Draft written — save when ready','ok');});
+document.getElementById('continueBtnAppend').addEventListener('click',function(){const text=document.getElementById('continueDraftBody').textContent.trim();if(!text)return;const cur=document.getElementById('chEditor').value.trim();document.getElementById('chEditor').value=cur?cur+'\n\n'+text:text;updateWC();document.getElementById('continueDraftArea').style.display='none';toast('Draft appended — save when ready','ok');});
+document.getElementById('continueBtnDiscard').addEventListener('click',function(){document.getElementById('continueDraftArea').style.display='none';});
+
+/* CHAT */
+function getChat(chId){if(!S.chatHistory[chId])S.chatHistory[chId]=[];return S.chatHistory[chId];}
+function parseDraft(text){const m=text.match(/<story_draft>([\s\S]*?)<\/story_draft>/);if(!m)return{chat:text.trim(),draft:null};return{chat:text.replace(/<story_draft>[\s\S]*?<\/story_draft>/,'').trim(),draft:m[1].trim()};}
+function initChatPanels(chId){const html=buildChatHTML(chId);document.getElementById('chatCol').innerHTML=html;document.getElementById('chatPanelInline').innerHTML=html;bindStaticChatEvents(chId);scrollChat(chId);}
+function buildChatHTML(chId){const hist=getChat(chId);const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===chId;});const n=gs().contextChapters==='all'?999:(parseInt(gs().contextChapters)||3);const idx=p?p.chapters.findIndex(function(c){return c.id===chId;}):-1;const prev=p?p.chapters.slice(0,idx<0?p.chapters.length:idx):[];const chips=[{label:'Bible',on:!!(p&&p.bible&&(p.bible.title||p.bible.premise))},{label:(p&&p.characters&&p.characters.length||0)+' chars',on:(p&&p.characters&&p.characters.length||0)>0},{label:(p&&p.lorebook&&p.lorebook.length||0)+' lore',on:(p&&p.lorebook&&p.lorebook.length||0)>0},{label:Math.min(n,prev.length)+' summaries',on:prev.length>0}];const ph=ch&&ch.content&&ch.content.trim()?'Ask to continue, rewrite, or explore ideas...':'Describe what should happen, or ask for ideas...';const msgsHtml=!hist.length?'<div class="chat-empty"><p>Chat here to develop ideas. When AI writes prose, a <strong>draft card</strong> appears.</p><div class="chat-starters">'+CFG.starters.map(function(s){return'<button class="starter-btn" data-prompt="'+esc(s)+'">'+esc(s)+'</button>';}).join('')+'</div></div>':hist.map(function(m,i){return buildMsgHTML(m,i,chId);}).join('');return'<div class="chat-card" style="position:relative"><div class="chat-head"><div class="chat-head-info"><div class="chat-head-title">AI Writing Assistant</div><div class="chat-head-sub">Brainstorm &rarr; draft &rarr; send to story</div></div><button class="chat-clear-btn" data-clear="'+chId+'">Clear</button></div><div class="chat-ctx">'+chips.map(function(c){return'<span class="ctx-chip '+(c.on?'on':'off')+'">'+c.label+'</span>';}).join('')+'</div><div class="chat-messages" id="msgs-'+chId+'">'+msgsHtml+'</div><button class="scroll-bottom-btn" id="scrollBottomBtn-'+chId+'" title="Scroll to bottom">&#8595;</button><div class="chat-input-area"><textarea class="chat-textarea" id="chatIn-'+chId+'" rows="2" placeholder="'+esc(ph)+'"></textarea><div class="fhint" style="font-size:0.68rem;margin-top:2px;color:var(--muted)">Ctrl+Enter or &#8984;+Enter to send &middot; Enter for new line</div><div style="display:flex;gap:6px"><button class="chat-send-btn" data-send="'+chId+'" style="flex:1">Send</button><button class="chat-stop-btn" data-stop="'+chId+'" style="display:none">Stop</button></div></div></div>';}
+function buildMsgHTML(m,i,chId){if(m.role==='user')return'<div class="msg user"><div class="msg-bubble">'+esc(m.content)+'</div></div>';const pd=parseDraft(m.content);let html='';if(pd.chat)html+='<div class="msg-bubble">'+esc(pd.chat).replace(/\n{2,}/g,'</p><p>').replace(/^/,'<p>').replace(/$/,'</p>').replace(/<p><\/p>/g,'')+'</div>';if(pd.draft){const draftWc=wc(pd.draft);html+='<div class="draft-card"><div class="draft-head">Story draft <span style="font-weight:400;opacity:0.7">'+draftWc.toLocaleString()+' words</span></div><div class="draft-body">'+esc(pd.draft)+'</div><div class="draft-actions"><button class="draft-btn draft-btn-write" data-di="'+i+'" data-cid="'+chId+'" data-mode="replace">Write to story</button><button class="draft-btn draft-btn-append" data-di="'+i+'" data-cid="'+chId+'" data-mode="append">Append to story</button><button class="draft-btn" style="background:transparent;border-color:var(--border);color:var(--text2)" data-rewrite="'+i+'" data-cid="'+chId+'">Rewrite</button><button class="draft-btn" style="background:transparent;border-color:var(--border);color:var(--text2)" data-expand="'+i+'" data-cid="'+chId+'">Expand</button></div>'+buildDraftHistoryHTML(chId)+'</div>';}if(pd.chat&&!pd.draft)html+='<div class="msg-actions"><button class="msg-action-btn" data-bubble-rewrite="'+i+'" data-cid="'+chId+'">Rewrite</button><button class="msg-action-btn" data-bubble-expand="'+i+'" data-cid="'+chId+'">Expand</button></div>';return'<div class="msg ai">'+html+'</div>';}
+function bindDraftClick(btn,chId){btn.addEventListener('click',function(){const msg=S.chatHistory[chId]&&S.chatHistory[chId][parseInt(btn.dataset.di)];if(!msg)return;const pd=parseDraft(msg.content);if(!pd.draft)return;if(btn.dataset.mode==='replace'){if(document.getElementById('chEditor').value.trim()&&!confirm('Replace existing chapter text?'))return;document.getElementById('chEditor').value=pd.draft;}else{const cur=document.getElementById('chEditor').value.trim();document.getElementById('chEditor').value=cur?cur+'\n\n'+pd.draft:pd.draft;}updateWC();if(activeSubTab==='chat')switchSubTab('write');toast('Draft sent — save when ready','ok');});}
+function bindStaticChatEvents(chId){document.querySelectorAll('[data-send="'+chId+'"]').forEach(function(btn){btn.addEventListener('click',function(){sendChat(chId);});});document.querySelectorAll('[data-stop="'+chId+'"]').forEach(function(btn){btn.addEventListener('click',function(){if(chatAbortController)chatAbortController.abort();});});document.querySelectorAll('#chatIn-'+chId).forEach(function(ta){ta.addEventListener('keydown',function(e){if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();sendChat(chId);}});});document.querySelectorAll('[data-clear="'+chId+'"]').forEach(function(btn){btn.addEventListener('click',function(){if(!confirm('Clear chat history for this chapter?'))return;S.chatHistory[chId]=[];save();initChatPanels(chId);toast('Chat cleared');});});document.querySelectorAll('.starter-btn').forEach(function(btn){btn.addEventListener('click',function(){const ta=document.querySelector('#chatIn-'+chId);if(ta)ta.value=btn.dataset.prompt;sendChat(chId);});});document.querySelectorAll('[data-di][data-cid="'+chId+'"]').forEach(function(btn){bindDraftClick(btn,chId);});document.querySelectorAll('[data-rewrite][data-cid="'+chId+'"]').forEach(function(btn){btn.addEventListener('click',function(){rewriteOrExpandDraft(chId,parseInt(btn.dataset.rewrite),'rewrite');});});document.querySelectorAll('[data-expand][data-cid="'+chId+'"]').forEach(function(btn){btn.addEventListener('click',function(){rewriteOrExpandDraft(chId,parseInt(btn.dataset.expand),'expand');});});document.querySelectorAll('[data-bubble-rewrite][data-cid="'+chId+'"]').forEach(function(btn){btn.addEventListener('click',function(){rewriteOrExpandBubble(chId,parseInt(btn.dataset['bubble-rewrite']),'rewrite');});});document.querySelectorAll('[data-bubble-expand][data-cid="'+chId+'"]').forEach(function(btn){btn.addEventListener('click',function(){rewriteOrExpandBubble(chId,parseInt(btn.dataset['bubble-expand']),'expand');});});document.querySelectorAll('[data-dhi][data-cid="'+chId+'"]').forEach(function(btn){bindDraftHistoryRestore(btn,chId);});document.querySelectorAll('#msgs-'+chId).forEach(function(msgs){const scrollBtn=document.getElementById('scrollBottomBtn-'+chId);if(!scrollBtn)return;msgs.addEventListener('scroll',function(){const atBottom=msgs.scrollHeight-msgs.scrollTop-msgs.clientHeight<80;scrollBtn.classList.toggle('visible',!atBottom);});scrollBtn.addEventListener('click',function(){msgs.scrollTo({top:msgs.scrollHeight,behavior:'smooth'});});});}
+function appendUserBubble(chId,content){const html='<div class="msg user"><div class="msg-bubble">'+esc(content)+'</div></div>';document.querySelectorAll('#msgs-'+chId).forEach(function(el){const empty=el.querySelector('.chat-empty');if(empty)empty.remove();el.insertAdjacentHTML('beforeend',html);});}
+function appendStreamBubble(chId){const sid=uid();document.querySelectorAll('#msgs-'+chId).forEach(function(el){el.insertAdjacentHTML('beforeend','<div class="msg ai" data-sid="'+sid+'"><div class="msg-bubble"><span class="typing">Writing...</span></div></div>');});return sid;}
+function updateStreamBubble(sid,text){document.querySelectorAll('[data-sid="'+sid+'"] .msg-bubble').forEach(function(el){el.textContent=text;});}
+function pushDraftHistory(chId,draftText){const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===chId;});if(!ch)return;if(!ch.draftHistory)ch.draftHistory=[];ch.draftHistory.unshift({text:draftText,ts:Date.now()});if(ch.draftHistory.length>CFG.maxDraftHistory)ch.draftHistory=ch.draftHistory.slice(0,CFG.maxDraftHistory);save();}
+function buildDraftHistoryHTML(chId){const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===chId;});if(!ch||!ch.draftHistory||!ch.draftHistory.length)return'';return'<div class="draft-history"><div class="draft-history-label">Previous versions ('+ch.draftHistory.length+')</div>'+ch.draftHistory.map(function(d,i){return'<div class="draft-hist-item"><span class="draft-hist-num">'+(i+1)+'</span><span class="draft-hist-preview">'+esc(d.text.slice(0,80))+'...</span><button class="draft-hist-restore" data-dhi="'+i+'" data-cid="'+chId+'">Restore</button></div>';}).join('')+'</div>';}
+function finalizeStreamBubble(sid,fullText,msgIdx,chId){document.querySelectorAll('[data-sid="'+sid+'"]').forEach(function(el){const pd=parseDraft(fullText);let html='';if(pd.chat)html+='<div class="msg-bubble">'+esc(pd.chat).replace(/\n{2,}/g,'</p><p>').replace(/^/,'<p>').replace(/$/,'</p>').replace(/<p><\/p>/g,'')+'</div>';if(pd.draft){const draftWc=wc(pd.draft);pushDraftHistory(chId,pd.draft);html+='<div class="draft-card"><div class="draft-head">Story draft <span style="font-weight:400;opacity:0.7">'+draftWc.toLocaleString()+' words</span></div><div class="draft-body">'+esc(pd.draft)+'</div><div class="draft-actions"><button class="draft-btn draft-btn-write" data-di="'+msgIdx+'" data-cid="'+chId+'" data-mode="replace">Write to story</button><button class="draft-btn draft-btn-append" data-di="'+msgIdx+'" data-cid="'+chId+'" data-mode="append">Append to story</button><button class="draft-btn" style="background:transparent;border-color:var(--border);color:var(--text2)" data-rewrite="'+msgIdx+'" data-cid="'+chId+'">Rewrite</button><button class="draft-btn" style="background:transparent;border-color:var(--border);color:var(--text2)" data-expand="'+msgIdx+'" data-cid="'+chId+'">Expand</button></div>'+buildDraftHistoryHTML(chId)+'</div>';}if(!pd.chat&&!pd.draft)html='<div class="msg-bubble">'+esc(fullText)+'</div>';if(pd.chat&&!pd.draft){html+='<div class="msg-actions"><button class="msg-action-btn" data-bubble-rewrite="'+msgIdx+'" data-cid="'+chId+'">Rewrite</button><button class="msg-action-btn" data-bubble-expand="'+msgIdx+'" data-cid="'+chId+'">Expand</button></div>';}el.innerHTML=html;delete el.dataset.sid;el.querySelectorAll('[data-di][data-cid="'+chId+'"]').forEach(function(btn){bindDraftClick(btn,chId);});el.querySelectorAll('[data-rewrite][data-cid="'+chId+'"]').forEach(function(btn){btn.addEventListener('click',function(){rewriteOrExpandDraft(chId,parseInt(btn.dataset.rewrite),'rewrite');});});el.querySelectorAll('[data-expand][data-cid="'+chId+'"]').forEach(function(btn){btn.addEventListener('click',function(){rewriteOrExpandDraft(chId,parseInt(btn.dataset.expand),'expand');});});el.querySelectorAll('[data-bubble-rewrite][data-cid="'+chId+'"]').forEach(function(btn){btn.addEventListener('click',function(){rewriteOrExpandBubble(chId,parseInt(btn.dataset['bubble-rewrite']),'rewrite');});});el.querySelectorAll('[data-bubble-expand][data-cid="'+chId+'"]').forEach(function(btn){btn.addEventListener('click',function(){rewriteOrExpandBubble(chId,parseInt(btn.dataset['bubble-expand']),'expand');});});el.querySelectorAll('[data-dhi][data-cid="'+chId+'"]').forEach(function(btn){bindDraftHistoryRestore(btn,chId);});});}
+function bindDraftHistoryRestore(btn,chId){btn.addEventListener('click',function(){const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===chId;});if(!ch||!ch.draftHistory)return;const item=ch.draftHistory[parseInt(btn.dataset.dhi)];if(!item)return;if(!confirm('Restore this version to the editor?'))return;document.getElementById('chEditor').value=item.text;updateWC();if(activeSubTab==='chat')switchSubTab('write');toast('Version restored — save when ready','ok');});}
+async function rewriteOrExpandDraft(chId,msgIdx,mode){if(!gs().apiKey){toast('Add API key in Settings','err');return;}const hist=S.chatHistory[chId];const msg=hist&&hist[msgIdx];if(!msg)return;const pd=parseDraft(msg.content);if(!pd.draft){toast('No draft found','err');return;}const ctx=buildCtx(chId);const prompt=mode==='rewrite'?CFG.prompts.rewriteDraft(pd.draft):CFG.prompts.expandDraft(pd.draft,ctx);const sid=appendStreamBubble(chId);scrollChat(chId);setStatus('busy');disableSendBtns(chId,true);chatAbortController=new AbortController();try{let fullReply='';await callAIStream([{role:'system',content:'You are a skilled fiction writer. Write story prose only.'},{role:'user',content:prompt}],function(chunk,full){fullReply=full;updateStreamBubble(sid,full);scrollChat(chId);},mode==='expand'?8000:4000,chatAbortController.signal);const wrapped='<story_draft>'+fullReply+'</story_draft>';hist.push({role:'assistant',content:wrapped});save();finalizeStreamBubble(sid,wrapped,hist.length-1,chId);setStatus('ok');}catch(e){if(e.name!=='AbortError'){toast(mode+' failed: '+e.message,'err');setStatus('err');document.querySelectorAll('[data-sid="'+sid+'"]').forEach(function(el){el.remove();});}else setStatus('ok');}chatAbortController=null;disableSendBtns(chId,false);scrollChat(chId);}
+async function rewriteOrExpandBubble(chId,msgIdx,mode){if(!gs().apiKey){toast('Add API key in Settings','err');return;}const hist=S.chatHistory[chId];const msg=hist&&hist[msgIdx];if(!msg)return;const ctx=buildCtx(chId);const prompt=mode==='expand'?CFG.prompts.expandDraft(msg.content,ctx):CFG.prompts.rewriteDraft(msg.content);const sid=appendStreamBubble(chId);scrollChat(chId);setStatus('busy');disableSendBtns(chId,true);chatAbortController=new AbortController();try{let fullReply='';await callAIStream([{role:'system',content:'You are a collaborative fiction writing assistant.'},{role:'user',content:prompt}],function(chunk,full){fullReply=full;updateStreamBubble(sid,full);scrollChat(chId);},mode==='expand'?5000:3000,chatAbortController.signal);hist.push({role:'assistant',content:fullReply});save();finalizeStreamBubble(sid,fullReply,hist.length-1,chId);setStatus('ok');}catch(e){if(e.name!=='AbortError'){toast(mode+' failed: '+e.message,'err');setStatus('err');document.querySelectorAll('[data-sid="'+sid+'"]').forEach(function(el){el.remove();});}else setStatus('ok');}chatAbortController=null;disableSendBtns(chId,false);scrollChat(chId);}
+function disableSendBtns(chId,disabled){document.querySelectorAll('[data-send="'+chId+'"]').forEach(function(btn){btn.disabled=disabled;btn.textContent=disabled?'Writing...':'Send';});document.querySelectorAll('[data-stop="'+chId+'"]').forEach(function(btn){btn.style.display=disabled?'':'none';});}
+async function sendChat(chId){if(!gs().apiKey){toast('Add API key in Settings','err');return;}const ta=document.querySelectorAll('#chatIn-'+chId)[0];if(!ta)return;const msg=ta.value.trim();if(!msg)return;const hist=getChat(chId);hist.push({role:'user',content:msg});document.querySelectorAll('#chatIn-'+chId).forEach(function(t){t.value='';});appendUserBubble(chId,msg);scrollChat(chId);const sid=appendStreamBubble(chId);scrollChat(chId);setStatus('busy');disableSendBtns(chId,true);chatAbortController=new AbortController();try{const ch=proj()&&proj().chapters.find(function(c){return c.id===chId;});const curText=ch&&ch.content&&ch.content.trim()?'\n\nCurrent chapter:\n---\n'+ch.content.slice(-1200)+'\n---':'';const apiMsgs=[{role:'system',content:CFG.prompts.chatSystem(proj()&&proj().bible)+'\n\n'+buildCtx(chId)+curText}];hist.forEach(function(m){apiMsgs.push({role:m.role,content:m.content});});let fullReply='';await callAIStream(apiMsgs,function(chunk,full){fullReply=full;updateStreamBubble(sid,full);scrollChat(chId);},3000,chatAbortController.signal);hist.push({role:'assistant',content:fullReply});save();finalizeStreamBubble(sid,fullReply,hist.length-1,chId);setStatus('ok');}catch(e){if(e.name==='AbortError'){const partial=document.querySelectorAll('[data-sid="'+sid+'"] .msg-bubble')[0];const fullReply=partial?partial.textContent:'';if(fullReply){hist.push({role:'assistant',content:fullReply});save();finalizeStreamBubble(sid,fullReply,hist.length-1,chId);}else{document.querySelectorAll('[data-sid="'+sid+'"]').forEach(function(el){el.remove();});}setStatus('ok');}else{const errText='Error: '+e.message;hist.push({role:'assistant',content:errText});updateStreamBubble(sid,errText);finalizeStreamBubble(sid,errText,hist.length-1,chId);save();setStatus('err');}}chatAbortController=null;disableSendBtns(chId,false);scrollChat(chId);}
+function scrollChat(chId){setTimeout(function(){document.querySelectorAll('#msgs-'+chId).forEach(function(el){el.scrollTop=el.scrollHeight;});},50);}
+
+/* CONTEXT */
+function buildCtx(chId){const p=proj();if(!p)return'';const s=gs();const b=p.bible;const n=s.contextChapters==='all'?999:(parseInt(s.contextChapters)||3);const curId=chId||activeChId;const curIdx=p.chapters.findIndex(function(c){return c.id===curId;});const prev=p.chapters.slice(0,curIdx<0?p.chapters.length:curIdx).slice(-n);const curCh=p.chapters.find(function(c){return c.id===curId;});const corpus=((curCh&&curCh.content||'')+' '+(curCh&&curCh.title||'')+' '+prev.map(function(c){return c.content||'';}).join(' ')).toLowerCase();const short=corpus.length<400;const relevantChars=p.characters.filter(function(c){return short||corpus.includes(c.name.toLowerCase())||((c.role||'').toLowerCase().match(/protagonist|main|hero|narrator/));});const relevantLore=p.lorebook.filter(function(l){return short||corpus.includes(l.name.toLowerCase());});let ctx='';if(b&&b.title)ctx+='STORY: '+b.title+'\n';if(b&&b.genre)ctx+='GENRE & TONE: '+b.genre+'\n';if(b&&b.premise)ctx+='\nPREMISE:\n'+b.premise+'\n';if(b&&b.style)ctx+='\nSTYLE:\n'+b.style+'\n';if(relevantChars.length){ctx+='\nCHARACTERS:\n';relevantChars.forEach(function(c){ctx+='- '+c.name+' ('+(c.role||'?')+')';if(c.appearance)ctx+=' | Appearance: '+c.appearance;if(c.personality)ctx+=' | Personality: '+c.personality;if(c.status)ctx+=' | Status: '+c.status;if(c.relations)ctx+=' | Relations: '+c.relations;ctx+='\n';});}if(relevantLore.length){ctx+='\nWORLD & LORE:\n';relevantLore.forEach(function(l){ctx+='- ['+l.category+'] '+l.name+': '+l.description+'\n';});}if(curCh&&curCh.tone){ctx+='\nCHAPTER TONE:\n- Pacing: '+curCh.tone.pacing+'\n- Prose style: '+curCh.tone.prose+'\n- Mood: '+curCh.tone.mood+'\n';}if(curCh&&curCh.scenes&&curCh.scenes.length){ctx+='\nCHAPTER OUTLINE:\n';curCh.scenes.forEach(function(sc,i){ctx+='Scene '+(i+1)+': '+sc.title+(sc.pov?' (POV: '+sc.pov+')':'')+'\n';});}if(prev.length){ctx+='\nPREVIOUS CHAPTERS:\n';prev.forEach(function(ch){const i=p.chapters.indexOf(ch);ctx+='Ch.'+(i+1)+' "'+ch.title+'": '+(ch.summary||(ch.content&&ch.content.slice(0,160)+'...')||'(no summary)')+'\n';});}const last=prev[prev.length-1];if(last&&last.content){ctx+='\nEND OF LAST CHAPTER:\n"...'+last.content.trim().split(/\s+/).slice(-200).join(' ')+'"\n';}return ctx;}
+
+/* LORE UPDATE */
+async function autoUpdateLore(ch){const p=proj();const ec=p.characters.map(function(c){return c.name+' ('+c.role+'): '+(c.personality||'')+(c.status?' | '+c.status:'');}).join('\n')||'none';const el=p.lorebook.map(function(l){return'['+l.category+'] '+l.name+': '+l.description;}).join('\n')||'none';const curIdx=p.chapters.findIndex(function(c){return c.id===ch.id;});const prevSums=p.chapters.slice(0,curIdx).map(function(c,i){return'Ch.'+(i+1)+' "'+c.title+'": '+(c.summary||'(no summary)');}).join('\n')||'none';const results=await Promise.all([callAI([{role:'user',content:CFG.prompts.summarise(ch)}],350),callAI([{role:'user',content:CFG.prompts.loreExtract(ch,ec,el)}],2400),(ch.content&&ch.content.trim()&&ch.content.length>200)?callAI([{role:'user',content:CFG.prompts.continuityCheck(ch,ec,el,prevSums)}],600):Promise.resolve(null)]);const summary=results[0];const raw=results[1];const continuityResult=results[2];ch.summary=summary.trim();if(continuityResult){const lower=continuityResult.toLowerCase();const noIssues=lower.includes('no issue')||lower.includes('no continuity')||lower.includes('no problems')||lower.includes('consistent')||lower.trim().length<80;const banner=document.getElementById('continuityBanner');const bannerText=document.getElementById('continuityText');if(banner&&bannerText){if(!noIssues){bannerText.textContent=continuityResult.trim();banner.classList.add('show');}else{banner.classList.remove('show');}}}try{const d=extractJSON(raw);if(d.characters)d.characters.forEach(function(nc){const ex=p.characters.find(function(c){return c.name.toLowerCase()===nc.name.toLowerCase();});if(ex){if(nc.status)ex.status=nc.status;if(nc.relations)ex.relations=nc.relations;if(nc.appearance&&!ex.appearance)ex.appearance=nc.appearance;if(nc.personality&&!ex.personality)ex.personality=nc.personality;}else if(nc.isNew!==false&&nc.name)p.characters.push({id:uid(),name:nc.name,role:nc.role||'',appearance:nc.appearance||'',personality:nc.personality||'',status:nc.status||'',relations:nc.relations||''});});if(d.lore)d.lore.forEach(function(nl){const ex=p.lorebook.find(function(l){return l.name.toLowerCase()===nl.name.toLowerCase();});if(ex){ex.description=nl.description||ex.description;ex.category=nl.category||ex.category;}else if(nl.isNew!==false&&nl.name)p.lorebook.push({id:uid(),name:nl.name,category:nl.category||'Other',description:nl.description||''});});}catch(e){console.warn('Lore parse failed',e);}save();updateStats();if(activeChId)initChatPanels(activeChId);}
+document.getElementById('syncCharsBtn').addEventListener('click',async function(){if(!gs().apiKey){toast('Add API key first','err');return;}if(!activeChId){toast('Open a chapter first','err');return;}const ch=proj()&&proj().chapters.find(function(c){return c.id===activeChId;});if(!ch||!ch.content){toast('Chapter has no content yet','err');return;}const btn=document.getElementById('syncCharsBtn');btn.textContent='Syncing...';btn.disabled=true;try{await autoUpdateLore(ch);renderChars();toast('Characters synced','ok');}catch(e){toast(e.message,'err');}finally{btn.textContent='Sync from chapter';btn.disabled=false;}});
+document.getElementById('syncLoreBtn').addEventListener('click',async function(){if(!gs().apiKey){toast('Add API key first','err');return;}if(!activeChId){toast('Open a chapter first','err');return;}const ch=proj()&&proj().chapters.find(function(c){return c.id===activeChId;});if(!ch||!ch.content){toast('Chapter has no content yet','err');return;}const btn=document.getElementById('syncLoreBtn');btn.textContent='Syncing...';btn.disabled=true;try{await autoUpdateLore(ch);renderLore();toast('Lorebook synced','ok');}catch(e){toast(e.message,'err');}finally{btn.textContent='Sync from chapter';btn.disabled=false;}});
+
+/* CHARACTERS */
+function renderChars(){const p=proj();const g=document.getElementById('charsGrid');if(!p||!p.characters.length){g.innerHTML='<div class="empty" style="background:var(--bg-editor);border:1px solid var(--border);border-radius:var(--r-xl);grid-column:1/-1"><h3>No characters yet</h3><p>Save a chapter and characters are extracted automatically, or add them manually.</p></div>';return;}g.innerHTML=p.characters.map(function(c){return'<div class="char-card"><div class="char-card-head"><div class="char-avatar" style="background:'+charColor(c.name)+'">'+esc(charInitials(c.name))+'</div><div><div class="char-name">'+esc(c.name)+'</div><div class="char-role-chip">'+esc(c.role||'Unknown role')+'</div></div></div><div class="char-body">'+(c.appearance?'<div class="char-field"><div class="flbl">Appearance</div><div class="fval">'+esc(c.appearance)+'</div></div>':'')+(c.personality?'<div class="char-field"><div class="flbl">Personality</div><div class="fval">'+esc(c.personality)+'</div></div>':'')+(c.status?'<div class="char-field"><div class="flbl">Status</div><div class="fval">'+esc(c.status)+'</div></div>':'')+(c.relations?'<div class="char-field"><div class="flbl">Relationships</div><div class="fval">'+esc(c.relations)+'</div></div>':'')+'</div><div class="char-foot"><button class="btn btn-sm" onclick="openCharModal(\''+c.id+'\')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteChar(\''+c.id+'\')">Delete</button></div></div>';}).join('');}
+document.getElementById('addCharBtn').addEventListener('click',function(){openCharModal();});
+document.getElementById('saveCharBtn').addEventListener('click',saveChar);
+function openCharModal(id){const c=id?proj()&&proj().characters.find(function(x){return x.id===id;}):null;document.getElementById('charModalTitle').textContent=id?'Edit character':'Add character';document.getElementById('cName').value=(c&&c.name)||'';document.getElementById('cRole').value=(c&&c.role)||'';document.getElementById('cAppear').value=(c&&c.appearance)||'';document.getElementById('cPersonality').value=(c&&c.personality)||'';document.getElementById('cStatus').value=(c&&c.status)||'';document.getElementById('cRelations').value=(c&&c.relations)||'';document.getElementById('cEditId').value=id||'';openModal('charModal');}
+function saveChar(){const p=proj();if(!p)return;const id=document.getElementById('cEditId').value;const name=document.getElementById('cName').value.trim();if(!name){toast('Name required','err');return;}const d={name:name,role:document.getElementById('cRole').value,appearance:document.getElementById('cAppear').value,personality:document.getElementById('cPersonality').value,status:document.getElementById('cStatus').value,relations:document.getElementById('cRelations').value};if(id){const i=p.characters.findIndex(function(c){return c.id===id;});if(i>=0)p.characters[i]=Object.assign({},p.characters[i],d);}else{p.characters.push(Object.assign({id:uid()},d));}save();renderChars();closeModal('charModal');updateStats();toast(id?'Updated':'Added','ok');}
+function deleteChar(id){if(!confirm('Delete?'))return;const p=proj();p.characters=p.characters.filter(function(c){return c.id!==id;});save();renderChars();updateStats();}
+
+/* LOREBOOK */
+function renderLore(){const p=proj();const nav=document.getElementById('loreNav');nav.innerHTML=CFG.loreCats.map(function(cat){const cnt=cat==='All'?(p&&p.lorebook&&p.lorebook.length||0):(p&&p.lorebook&&p.lorebook.filter(function(l){return l.category===cat;}).length||0);if(cat!=='All'&&cnt===0)return'';return'<button class="lnav-btn '+(activeLoreCat===cat?'active':'')+'" data-cat="'+cat+'">'+cat+'<span class="lnav-count">'+cnt+'</span></button>';}).join('');nav.querySelectorAll('.lnav-btn').forEach(function(btn){btn.addEventListener('click',function(){activeLoreCat=btn.dataset.cat;renderLore();});});const filtered=activeLoreCat==='All'?(p&&p.lorebook||[]):(p&&p.lorebook&&p.lorebook.filter(function(l){return l.category===activeLoreCat;})||[]);const el=document.getElementById('loreEntries');if(!filtered.length){el.innerHTML='<div class="empty" style="background:var(--bg-editor);border:1px solid var(--border);border-radius:var(--r-xl)"><h3>No entries</h3><p>Save a chapter and lore is extracted automatically, or add entries manually.</p></div>';return;}el.innerHTML=filtered.map(function(l){return'<div class="lore-card"><div class="lore-card-head"><div class="lore-name">'+esc(l.name)+'</div><span class="lore-cat-chip">'+esc(l.category)+'</span></div><div class="lore-body">'+esc(l.description||'—')+'</div><div class="lore-foot"><button class="btn btn-sm" onclick="openLoreModal(\''+l.id+'\')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteLore(\''+l.id+'\')">Delete</button></div></div>';}).join('');}
+document.getElementById('addLoreBtn').addEventListener('click',function(){openLoreModal();});
+document.getElementById('saveLoreEntryBtn').addEventListener('click',saveLoreEntry);
+function openLoreModal(id){const l=id?proj()&&proj().lorebook.find(function(e){return e.id===id;}):null;document.getElementById('loreModalTitle').textContent=id?'Edit entry':'Add lore entry';document.getElementById('lName').value=(l&&l.name)||'';document.getElementById('lCat').value=(l&&l.category)||'World';document.getElementById('lDesc').value=(l&&l.description)||'';document.getElementById('lEditId').value=id||'';openModal('loreModal');}
+function saveLoreEntry(){const p=proj();if(!p)return;const id=document.getElementById('lEditId').value;const name=document.getElementById('lName').value.trim();if(!name){toast('Name required','err');return;}const d={name:name,category:document.getElementById('lCat').value,description:document.getElementById('lDesc').value};if(id){const i=p.lorebook.findIndex(function(l){return l.id===id;});if(i>=0)p.lorebook[i]=Object.assign({},p.lorebook[i],d);}else{p.lorebook.push(Object.assign({id:uid()},d));}save();renderLore();closeModal('loreModal');updateStats();toast(id?'Updated':'Added','ok');}
+function deleteLore(id){if(!confirm('Delete?'))return;const p=proj();p.lorebook=p.lorebook.filter(function(l){return l.id!==id;});save();renderLore();updateStats();}
+
+/* SETTINGS */
+function loadSettings(){const s=gs();const p=proj();document.getElementById('apiKeyInput').value=s.apiKey||'';document.getElementById('modelSel').value=s.model||'deepseek/deepseek-r1:free';document.getElementById('customModelInput').value=s.customModel||'';document.getElementById('customModelField').style.display=s.model==='custom'?'block':'none';document.getElementById('chLenSel').value=s.chapterLength||'medium';document.getElementById('draftLenSel').value=s.draftLength||'verylong';document.getElementById('ctxChSel').value=s.contextChapters||'3';if(s.githubToken)document.getElementById('githubToken').value=s.githubToken;if(p){document.getElementById('storyTitle').value=(p.bible&&p.bible.title)||'';document.getElementById('storyGenre').value=(p.bible&&p.bible.genre)||'';document.getElementById('storyPremise').value=(p.bible&&p.bible.premise)||'';document.getElementById('storyStyle').value=(p.bible&&p.bible.style)||'';document.getElementById('bibleProjLbl').textContent='— '+p.name;}updateSyncUI();}
+document.getElementById('modelSel').addEventListener('change',function(e){document.getElementById('customModelField').style.display=e.target.value==='custom'?'block':'none';});
+document.getElementById('saveApiBtn').addEventListener('click',function(){gs().apiKey=document.getElementById('apiKeyInput').value.trim();gs().model=document.getElementById('modelSel').value;gs().customModel=document.getElementById('customModelInput').value.trim();save();setStatus(gs().apiKey?'ok':'');toast('API settings saved','ok');});
+document.getElementById('saveBibleBtn').addEventListener('click',function(){const p=proj();if(!p)return;p.bible.title=document.getElementById('storyTitle').value;p.bible.genre=document.getElementById('storyGenre').value;p.bible.premise=document.getElementById('storyPremise').value;p.bible.style=document.getElementById('storyStyle').value;save();toast('Story bible saved','ok');});
+document.getElementById('saveGenBtn').addEventListener('click',function(){gs().chapterLength=document.getElementById('chLenSel').value;gs().draftLength=document.getElementById('draftLenSel').value;gs().contextChapters=document.getElementById('ctxChSel').value;save();toast('Saved','ok');});
+document.getElementById('connectSyncBtn').addEventListener('click',async function(){const token=document.getElementById('githubToken').value.trim();if(!token){toast('Enter your GitHub token','err');return;}const btn=document.getElementById('connectSyncBtn');btn.textContent='Connecting...';btn.disabled=true;try{gs().githubToken=token;gs().gistId='';const gistId=await findOrCreateGist(token);gs().gistId=gistId;save();const cloudData=await fetchGistData(token,gistId);const cloudHas=cloudData&&hasMeaningfulData(cloudData.projects);const localHas=hasMeaningfulData(S.projects);if(cloudHas&&localHas){const cloudSum=summaryText(summarizeProjects(cloudData.projects));const localSum=summaryText(summarizeProjects(S.projects));const msg="Both this device and the cloud already have story data.\n\nCloud: "+cloudSum+"\nThis device: "+localSum+"\n\nClick OK to LOAD the cloud version (replaces what is on this device).\nClick Cancel to PUSH this device's version instead (replaces the cloud copy).";const loadCloud=confirm(msg);if(loadCloud){applyCloudData(cloudData,token,gistId);toast('Loaded existing story from cloud','ok');}else{await pushSync(true);toast('Pushed local data to cloud','ok');}}else if(cloudHas&&!localHas){applyCloudData(cloudData,token,gistId);toast('Loaded your story from the cloud','ok');}else{await pushSync(true);toast('Connected & synced','ok');}updateSyncUI();}catch(e){gs().githubToken='';gs().gistId='';save();toast('Failed: '+e.message,'err');}finally{btn.textContent='Connect & sync';btn.disabled=false;}});
+document.getElementById('pushSyncBtn').addEventListener('click',function(){pushSync();});
+document.getElementById('pullSyncBtn').addEventListener('click',function(){pullSync();});
+document.getElementById('disconnectBtn').addEventListener('click',function(){if(!confirm('Disconnect sync?'))return;gs().githubToken='';gs().gistId='';save();updateSyncUI();toast('Disconnected');});
+document.getElementById('autoSync').addEventListener('change',function(e){gs().autoSync=e.target.value;save();});
+document.getElementById('exportJsonBtn').addEventListener('click',function(){const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='inkwell-backup-'+Date.now()+'.json';a.click();toast('Exported','ok');});
+document.getElementById('importJsonBtn').addEventListener('click',function(){document.getElementById('importFile').click();});
+document.getElementById('importFile').addEventListener('change',function(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=function(ev){try{const imp=JSON.parse(ev.target.result);if(!confirm('Replace all data?'))return;S=Object.assign({},S,imp);if(!S.chatHistory)S.chatHistory={};S.projects.forEach(function(p){p.chapters.forEach(function(ch){if(!ch.scenes)ch.scenes=[];});});save();renderProjDropdown();renderChList();updateStats();setStatus(gs().apiKey?'ok':'');activeChId=null;document.getElementById('editorEmpty').style.display='flex';document.getElementById('editorActive').style.display='none';toast('Imported','ok');}catch(err){toast('Invalid file','err');}};r.readAsText(f);e.target.value='';});
+document.getElementById('clearProjBtn').addEventListener('click',function(){const p=proj();if(!p)return;if(!confirm('Clear "'+p.name+'"?'))return;p.chapters.forEach(function(ch){delete S.chatHistory[ch.id];});p.chapters=[];p.characters=[];p.lorebook=[];p.bible={title:p.name,genre:'',premise:'',style:''};activeChId=null;save();renderChList();updateStats();document.getElementById('editorEmpty').style.display='flex';document.getElementById('editorActive').style.display='none';toast('Cleared');});
+
+/* EXPORT */
+document.getElementById('exportPdfBtn').addEventListener('click',function(){const p=proj();if(!p)return;const b=p.bible;function pf(t){return(t||'').split(/\n{2,}/).map(function(par){return'<p>'+esc(par.replace(/\n/g,' ').trim())+'</p>';}).filter(function(x){return x.replace(/<[^>]+>/g,'').trim();}).join('');}const w=window.open('','_blank');w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+esc(b&&b.title||p.name)+'</title><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"IBM Plex Serif",Georgia,serif;font-size:12pt;line-height:1.95;color:#1a1a1a;max-width:640px;margin:0 auto;padding:48px 60px}.cover{text-align:center;padding:100px 0;page-break-after:always}h1{font-size:22pt;margin-bottom:10px}.ch{page-break-before:always;margin-bottom:60px}.ch:first-of-type{page-break-before:auto}.ey{font-size:8pt;letter-spacing:.2em;text-transform:uppercase;color:#aaa;margin-bottom:8pt}h2{font-size:16pt;font-style:italic;margin-bottom:18pt}.ch p{margin-bottom:1em;text-align:justify;text-indent:1.5em}.ch p:first-child{text-indent:0}.app{page-break-before:always}.ai{margin-bottom:14px;padding:10px;border-left:2px solid #ddd}@media print{body{padding:0}@page{margin:2.2cm 2.8cm;size:A4}}</style></head><body><div class="cover"><h1>'+esc(b&&b.title||p.name)+'</h1>'+(b&&b.genre?'<p style="font-style:italic;color:#666;margin:8pt 0">'+esc(b.genre)+'</p>':'')+'<p style="color:#aaa;font-size:9pt">'+new Date().toLocaleDateString()+'</p></div>'+p.chapters.map(function(ch,i){return'<div class="ch"><div class="ey">Chapter '+(i+1)+'</div><h2>'+esc(ch.title||'Untitled')+'</h2>'+pf(ch.content)+'</div>';}).join('')+(p.characters.length?'<div class="app"><h2>Characters</h2>'+p.characters.map(function(c){return'<div class="ai"><b>'+esc(c.name)+'</b> — '+esc(c.role||'')+(c.personality?'<p>'+esc(c.personality)+'</p>':'')+'</div>';}).join('')+'</div>':'')+'<script>window.onload=function(){window.print();};<\/script></body></html>');w.document.close();});
+document.getElementById('exportDocBtn').addEventListener('click',function(){const p=proj();if(!p)return;const b=p.bible;function pf(t){return(t||'').split(/\n{2,}/).map(function(par){return'<p style="margin:0 0 10pt;text-align:justify;text-indent:18pt">'+esc(par.replace(/\n/g,' ').trim())+'</p>';}).filter(function(x){return x.replace(/<[^>]+>/g,'').trim();}).join('');}let body='<h1 style="font-size:22pt;text-align:center;margin-bottom:6pt">'+esc(b&&b.title||p.name)+'</h1>';if(b&&b.genre)body+='<p style="text-align:center;font-style:italic;color:#666;margin-bottom:4pt">'+esc(b.genre)+'</p>';body+='<p style="text-align:center;color:#aaa;font-size:9pt;margin-bottom:38pt">'+new Date().toLocaleDateString()+'</p>';p.chapters.forEach(function(ch,i){if(i>0)body+='<br style="page-break-before:always">';body+='<p style="font-size:8pt;letter-spacing:2pt;text-transform:uppercase;color:#aaa">Chapter '+(i+1)+'</p><h2 style="font-size:17pt;font-style:italic;margin-bottom:18pt">'+esc(ch.title||'Untitled')+'</h2>'+pf(ch.content||'');});if(p.characters.length){body+='<br style="page-break-before:always"><h2 style="font-size:14pt;margin-bottom:16pt">Characters</h2>';p.characters.forEach(function(c){body+='<h3 style="font-size:11pt;margin-bottom:3pt">'+esc(c.name)+'</h3>'+(c.personality?'<p style="margin-bottom:10pt">'+esc(c.personality)+'</p>':'');});}const html='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>body{font-size:12pt;line-height:1.95;margin:2.2cm 2.8cm}</style></head><body>'+body+'</body></html>';const blob=new Blob(['\ufeff'+html],{type:'application/msword'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=((b&&b.title||p.name).replace(/[^a-z0-9]/gi,'-').toLowerCase())+'.doc';a.click();toast('Word document downloaded','ok');});
+
+/* NAVIGATION */
+function switchTab(tab){document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('active');});document.querySelectorAll('.tnav-btn,.bnav-btn').forEach(function(b){b.classList.remove('active');});document.getElementById('tab-'+tab).classList.add('active');document.querySelectorAll('[data-tab="'+tab+'"]').forEach(function(b){b.classList.add('active');});if(tab==='characters')renderChars();if(tab==='lorebook')renderLore();if(tab==='settings')loadSettings();}
+document.getElementById('topNav').addEventListener('click',function(e){const b=e.target.closest('.tnav-btn');if(b)switchTab(b.dataset.tab);});
+document.getElementById('bottomNav').addEventListener('click',function(e){const b=e.target.closest('.bnav-btn');if(b)switchTab(b.dataset.tab);});
+function switchSubTab(sub){activeSubTab=sub;document.querySelectorAll('.subtab-btn').forEach(function(b){b.classList.toggle('active',b.dataset.sub===sub);});const wp=document.getElementById('writePanel'),cp=document.getElementById('chatPanelInline');if(sub==='write'){wp.style.display='flex';cp.style.display='none';}else{wp.style.display='none';cp.style.display='block';if(activeChId)initChatPanels(activeChId);}}
+document.getElementById('subtabs').addEventListener('click',function(e){const b=e.target.closest('.subtab-btn');if(b)switchSubTab(b.dataset.sub);});
+function setView(v){document.getElementById('storyGrid').dataset.view=v;const wrap=document.getElementById('backBtn')&&document.getElementById('backBtn').closest('.back-btn-wrap');if(wrap)wrap.style.display=(v==='detail'&&window.innerWidth<=720)?'block':'none';}
+window.addEventListener('resize',function(){const wrap=document.getElementById('backBtn')&&document.getElementById('backBtn').closest('.back-btn-wrap');if(wrap&&window.innerWidth>720)wrap.style.display='none';});
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-back').forEach(function(m){m.addEventListener('click',function(e){if(e.target===m)closeModal(m.id);});});
+function updateStats(){const p=proj();document.getElementById('sCh').textContent=p&&p.chapters&&p.chapters.length||0;document.getElementById('sWd').textContent=((p&&p.chapters&&p.chapters.reduce(function(a,c){return a+(c.wordCount||0);},0))||0).toLocaleString();document.getElementById('sCr').textContent=p&&p.characters&&p.characters.length||0;document.getElementById('sLr').textContent=p&&p.lorebook&&p.lorebook.length||0;}
+document.getElementById('syncPill').addEventListener('click',function(){if(gs().githubToken)pushSync();else switchTab('settings');});
+
+/* FANFIC MODE */
+let fanficFiles=[];let fanficExtracted=null;
+function renderFanficFileList(){const el=document.getElementById('fanficFileList');el.innerHTML=fanficFiles.map(function(f,i){return'<div class="fanfic-file-item"><span class="fanfic-file-name">'+esc(f.name)+'</span><span style="font-family:var(--font-mono);font-size:0.68rem;color:var(--muted)">'+(f.size>1024*1024?(f.size/1024/1024).toFixed(1)+'MB':(f.size/1024).toFixed(0)+'KB')+'</span><button class="fanfic-file-del" data-fi="'+i+'">&#215;</button></div>';}).join('');el.querySelectorAll('[data-fi]').forEach(function(btn){btn.addEventListener('click',function(){fanficFiles.splice(parseInt(btn.dataset.fi),1);renderFanficFileList();});});}
+document.getElementById('fanficBtn').addEventListener('click',function(){document.getElementById('pdrop').classList.remove('open');fanficFiles=[];document.getElementById('fanficFileList').innerHTML='';document.getElementById('fanficProjName').value='';openModal('fanficModal');});
+document.getElementById('fanficDropZone').addEventListener('click',function(){document.getElementById('fanficFileInput').click();});
+document.getElementById('fanficDropZone').addEventListener('dragover',function(e){e.preventDefault();this.classList.add('drag');});
+document.getElementById('fanficDropZone').addEventListener('dragleave',function(){this.classList.remove('drag');});
+document.getElementById('fanficDropZone').addEventListener('drop',function(e){e.preventDefault();this.classList.remove('drag');Array.from(e.dataTransfer.files).forEach(function(f){fanficFiles.push(f);});renderFanficFileList();});
+document.getElementById('fanficFileInput').addEventListener('change',function(e){Array.from(e.target.files).forEach(function(f){fanficFiles.push(f);});renderFanficFileList();e.target.value='';});
+document.getElementById('fanficExtractBtn').addEventListener('click',async function(){if(!fanficFiles.length){toast('Upload at least one file','err');return;}if(!gs().apiKey){toast('Add API key in Settings first','err');return;}const btn=this;btn.disabled=true;btn.textContent='Extracting...';toast('Extracting — this may take a moment','info');try{let combined='';for(const f of fanficFiles){const text=await new Promise(function(res,rej){const r=new FileReader();r.onload=function(e){res(e.target.result);};r.onerror=rej;r.readAsText(f);});combined+='\n\n--- FILE: '+f.name+' ---\n\n'+text;}const p=proj();const ec=p.characters.map(function(c){return c.name;}).join(', ')||'none';const el=p.lorebook.map(function(l){return l.name;}).join(', ')||'none';const raw=await callAI([{role:'user',content:CFG.prompts.fanficExtract(combined,ec,el)}],3200);fanficExtracted=extractJSON(raw);closeModal('fanficModal');renderFanficReview(fanficExtracted);openModal('fanficReviewModal');}catch(e){toast('Extraction failed: '+e.message,'err');}btn.disabled=false;btn.textContent='Extract & Review \u2192';});
+function renderFanficReview(data){const sec=document.getElementById('fanficReviewSection');let html='';if(data.bible){html+='<div style="padding:10px 0;border-bottom:1px solid var(--border);margin-bottom:10px"><div class="flabel" style="margin-bottom:6px">Detected Story Bible</div>';if(data.bible.title)html+='<div style="font-size:0.82rem"><strong>Title:</strong> '+esc(data.bible.title)+'</div>';if(data.bible.genre)html+='<div style="font-size:0.82rem"><strong>Genre:</strong> '+esc(data.bible.genre)+'</div>';if(data.bible.premise)html+='<div style="font-size:0.82rem;margin-top:4px">'+esc(data.bible.premise)+'</div>';html+='</div>';}const chars=data.characters||[];html+='<div class="fanfic-review-chars"><div class="fanfic-review-head"><span>Characters</span><span class="fanfic-review-count">'+chars.length+'</span></div><div class="fanfic-review-list">'+chars.map(function(c,i){return'<div class="fanfic-review-item"><input type="checkbox" checked data-rc="'+i+'"><div class="fanfic-review-item-body"><div class="fanfic-review-name">'+esc(c.name)+'</div><div class="fanfic-review-detail">'+esc(c.role||'')+(c.personality?' — '+c.personality.slice(0,120):'')+'</div></div></div>';}).join('')+'</div></div>';const lore=data.lore||[];html+='<div class="fanfic-review-lore" style="margin-top:8px"><div class="fanfic-review-head"><span>Lore & World-building</span><span class="fanfic-review-count">'+lore.length+'</span></div><div class="fanfic-review-list">'+lore.map(function(l,i){return'<div class="fanfic-review-item"><input type="checkbox" checked data-rl="'+i+'"><div class="fanfic-review-item-body"><div class="fanfic-review-name">'+esc(l.name)+'<span style="margin-left:6px;font-family:var(--font-mono);font-size:0.6rem;color:var(--muted)">'+esc(l.category||'Other')+'</span></div><div class="fanfic-review-detail">'+esc((l.description||'').slice(0,140))+'</div></div></div>';}).join('')+'</div></div>';sec.innerHTML=html;}
+document.getElementById('fanficImportBtn').addEventListener('click',function(){if(!fanficExtracted)return;const projName=document.getElementById('fanficProjName').value.trim()||'Fanfic Project';const checkedChars=Array.from(document.querySelectorAll('[data-rc]:checked')).map(function(cb){return fanficExtracted.characters[parseInt(cb.dataset.rc)];}).filter(Boolean);const checkedLore=Array.from(document.querySelectorAll('[data-rl]:checked')).map(function(cb){return fanficExtracted.lore[parseInt(cb.dataset.rl)];}).filter(Boolean);const np=mkProj(projName);if(fanficExtracted.bible){np.bible.title=fanficExtracted.bible.title||projName;np.bible.genre=fanficExtracted.bible.genre||'';np.bible.premise=fanficExtracted.bible.premise||'';np.bible.style=(fanficExtracted.bible.style||'')+(fanficExtracted.extractedStyle?'\n\nSource style: '+fanficExtracted.extractedStyle:'');}np.characters=checkedChars.map(function(c){return{id:uid(),name:c.name||'',role:c.role||'',appearance:c.appearance||'',personality:(c.personality||'')+(c.speechPattern?'\nSpeech: '+c.speechPattern:'')+(c.motivations?'\nMotivations: '+c.motivations:''),status:c.status||'',relations:c.relations||''};});np.lorebook=checkedLore.map(function(l){return{id:uid(),name:l.name||'',category:l.category||'Other',description:l.description||''};});S.projects.push(np);S.activeProjectId=np.id;activeChId=null;save();renderProjDropdown();renderChList();updateStats();document.getElementById('editorEmpty').style.display='flex';document.getElementById('editorActive').style.display='none';closeModal('fanficReviewModal');fanficExtracted=null;toast('Fanfic project created with '+checkedChars.length+' characters & '+checkedLore.length+' lore entries','ok');});
+/* INIT */
+load();
+renderProjDropdown();
+renderChList();
+updateStats();
+setStatus(gs().apiKey?'ok':'');
+updateSyncUI();
+setView('list');
+document.getElementById('chatCol').innerHTML='<div class="chat-card"><div class="chat-head"><div class="chat-head-info"><div class="chat-head-title">AI Writing Assistant</div><div class="chat-head-sub">Open a chapter to start</div></div></div><div class="chat-messages"><div class="chat-empty"><p>Open or create a chapter, then use this panel to develop ideas with AI before writing.</p></div></div></div>';
+
+/* PWA */
+(function(){
+  // SVG icon — "I" lettermark on amber
+  var svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#D97940"/><rect x="196" y="108" width="120" height="40" rx="8" fill="white"/><rect x="220" y="156" width="72" height="200" rx="6" fill="white"/><rect x="196" y="364" width="120" height="40" rx="8" fill="white"/></svg>';
+  var iconUrl='data:image/svg+xml;base64,'+btoa(svg);
+  var ti=document.getElementById('touchIcon');
+  if(ti)ti.href=iconUrl;
+  var manifest={name:'Inkwell — AI Story Studio',short_name:'Inkwell',description:'AI-powered long-form fiction writing studio',start_url:'./',display:'standalone',background_color:'#FAFAFA',theme_color:'#D97940',orientation:'any',icons:[{src:iconUrl,sizes:'192x192',type:'image/svg+xml',purpose:'any maskable'},{src:iconUrl,sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}]};
+  try{var mb=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});document.getElementById('appManifest').href=URL.createObjectURL(mb);}catch(e){}
+  if('serviceWorker' in navigator){
+    var sw="const C='inkwell-sw-1';self.addEventListener('install',function(e){self.skipWaiting();});self.addEventListener('activate',function(e){e.waitUntil(clients.claim());});self.addEventListener('fetch',function(e){if(e.request.method==='GET')e.respondWith(fetch(e.request).catch(function(){return caches.match(e.request);}));});";
+    try{var sb=new Blob([sw],{type:'application/javascript'});navigator.serviceWorker.register(URL.createObjectURL(sb)).catch(function(){});}catch(e){}
+  }
+})();
+</script>
+</body>
+</html>
