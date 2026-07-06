@@ -488,6 +488,7 @@ main{flex:1;overflow:hidden;position:relative;}
             </div>
             <div class="footer-btns">
               <button class="continue-btn" id="continueBtn">Continue writing</button>
+              <button class="continue-btn" id="checkContinuityBtn">Check continuity</button>
               <button class="save-btn" id="saveChBtn">Save chapter</button>
             </div>
           </div>
@@ -635,7 +636,7 @@ main{flex:1;overflow:hidden;position:relative;}
 <div class="toast-zone" id="toastZone"></div>
 <script>
 'use strict';
-const CFG={version:'0.8',storageKey:'inkwell_v3',syncFile:'inkwell-sync.json',maxChatHist:40,autosaveMs:30000,maxDraftHistory:3,chLengths:{short:'~500 words',medium:'~1,000 words',long:'~2,000 words',verylong:'~3,500 words'},draftLengths:{short:'~500 words',medium:'~1,000 words',long:'~2,000 words',verylong:'~3,500 words',extended:'~5,000 words',epic:'~7,000 words'},tonePresets:{pacing:['Slow burn','Steady','Fast-paced','Urgent'],prose:['Sparse','Balanced','Rich','Lyrical'],mood:['Tense','Melancholic','Hopeful','Dark','Playful']},starters:['Write an opening scene','What should happen next?','Give me a plot twist','Describe this location','Write dialogue between characters'],loreCats:['All','World','Location','Faction','History','Magic / Tech','Item','Other'],charColors:['#b85c38','#4d8f63','#4a90d9','#9b59b6','#c0392b','#16a085','#d35400','#2e86c1'],prompts:{continuityCheck(ch,chars,lore,prevSummaries){return'You are a fiction continuity editor. Read the chapter below and check it against the established facts.\n\nCHARACTERS:\n'+chars+'\n\nLORE & WORLD FACTS:\n'+lore+'\n\nPREVIOUS CHAPTER SUMMARIES:\n'+prevSummaries+'\n\nCHAPTER TO CHECK:\n'+ch.content+'\n\nIdentify any continuity issues: character trait contradictions, timeline inconsistencies, world-rule violations, factual errors vs established lore, or POV/name slips. Be specific — quote the offending passage and explain the conflict. If there are no issues, say so briefly. Respond in plain prose, no JSON.';},
+const CFG={version:'0.9',storageKey:'inkwell_v3',syncFile:'inkwell-sync.json',maxChatHist:40,autosaveMs:30000,maxDraftHistory:3,chLengths:{short:'~500 words',medium:'~1,000 words',long:'~2,000 words',verylong:'~3,500 words'},draftLengths:{short:'~500 words',medium:'~1,000 words',long:'~2,000 words',verylong:'~3,500 words',extended:'~5,000 words',epic:'~7,000 words'},tonePresets:{pacing:['Slow burn','Steady','Fast-paced','Urgent'],prose:['Sparse','Balanced','Rich','Lyrical'],mood:['Tense','Melancholic','Hopeful','Dark','Playful']},starters:['Write an opening scene','What should happen next?','Give me a plot twist','Describe this location','Write dialogue between characters'],loreCats:['All','World','Location','Faction','History','Magic / Tech','Item','Other'],charColors:['#b85c38','#4d8f63','#4a90d9','#9b59b6','#c0392b','#16a085','#d35400','#2e86c1'],prompts:{continuityCheck(ch,chars,lore,prevSummaries){return'You are a fiction continuity editor. Read the chapter below and check it against the established facts.\n\nCHARACTERS:\n'+chars+'\n\nLORE & WORLD FACTS:\n'+lore+'\n\nPREVIOUS CHAPTER SUMMARIES:\n'+prevSummaries+'\n\nCHAPTER TO CHECK:\n'+ch.content+'\n\nIdentify any continuity issues: character trait contradictions, timeline inconsistencies, world-rule violations, factual errors vs established lore, or POV/name slips. Be specific — quote the offending passage and explain the conflict. If there are no issues, say so briefly. Respond in plain prose, no JSON.';},
 continuityFix(ch,issues){return'You are a meticulous fiction line-editor. Below is a chapter and a list of continuity issues found in it. Rewrite the chapter to fix ONLY these specific issues.\n\nSTRICT RULES:\n- Preserve the original wording, sentence structure, style, and formatting everywhere else EXACTLY as-is.\n- Make the smallest possible edits needed to resolve each issue — do not paraphrase or restyle unrelated sentences.\n- Do not add commentary, headers, or explanations.\n- Respond with ONLY the full corrected chapter text, nothing else — no preamble, no markdown fences, no quotes around it.\n\nCONTINUITY ISSUES TO FIX:\n'+issues+'\n\nCHAPTER:\n'+ch.content;},
 rewriteDraft(originalDraft,style){return'Rewrite the following story draft in the same style, voice, and narrative direction. Do not change the plot — same events, same characters, same scene. Just write it fresh.\n\nOriginal draft:\n---\n'+originalDraft+'\n---\n\nWrite the rewrite now. Output prose only, no preamble.';},
 expandDraft(originalDraft,ctx){return'The following is a story draft that needs to be expanded into a longer, more detailed version. Keep all plot events, characters, and the overall narrative arc. Add more scene detail, dialogue, interiority, sensory description, and pacing. Do not add new plot events that contradict the original.\n\nContext:\n'+ctx+'\n\nOriginal draft:\n---\n'+originalDraft+'\n---\n\nWrite the expanded version now. Output prose only, no preamble.';},
@@ -769,14 +770,16 @@ document.getElementById('continuityFixBtn').addEventListener('click',async funct
   if(!ch)return;
   const issues=document.getElementById('continuityText').textContent.trim();
   if(!issues)return;
+  const liveContent=document.getElementById('chEditor').value||'';
+  const liveCh={title:ch.title,content:liveContent};
   const btn=this;const origLabel=btn.textContent;btn.disabled=true;btn.textContent='Generating fix...';
   try{
-    const maxTok=Math.min(10000,Math.max(2000,Math.ceil(ch.content.length/3)));
-    const corrected=await callAI([{role:'user',content:CFG.prompts.continuityFix(ch,issues)}],maxTok);
+    const maxTok=Math.min(10000,Math.max(2000,Math.ceil(liveContent.length/3)));
+    const corrected=await callAI([{role:'user',content:CFG.prompts.continuityFix(liveCh,issues)}],maxTok);
     const cleaned=corrected.trim().replace(/^```[a-z]*\n?/i,'').replace(/```$/,'').trim();
-    if(!cleaned||cleaned===ch.content.trim()){toast('No changes suggested','err');return;}
+    if(!cleaned||cleaned===liveContent.trim()){toast('No changes suggested','err');return;}
     pendingContinuityFix={chId:ch.id,correctedText:cleaned};
-    document.getElementById('continuityDiffView').innerHTML=computeChapterDiffHtml(ch.content,cleaned);
+    document.getElementById('continuityDiffView').innerHTML=computeChapterDiffHtml(liveContent,cleaned);
     openModal('continuityFixModal');
   }catch(e){toast('Fix failed: '+e.message,'err');}
   finally{btn.disabled=false;btn.textContent=origLabel;}
@@ -792,7 +795,7 @@ document.getElementById('applyContinuityFixBtn').addEventListener('click',functi
   document.getElementById('continuityBanner').classList.remove('show');
   closeModal('continuityFixModal');
   pendingContinuityFix=null;
-  toast('Continuity fix applied','ok');
+  toast('Continuity fix applied and chapter saved','ok');
 });
 function saveCh(){const p=proj();if(!p||!activeChId)return;const ch=p.chapters.find(function(c){return c.id===activeChId;});if(!ch)return;ch.title=document.getElementById('chTitleInput').value||'Untitled';ch.content=document.getElementById('chEditor').value;ch.wordCount=wc(ch.content);save();renderChList();updateStats();}
 function updateWC(){document.getElementById('wcLabel').textContent=wc(document.getElementById('chEditor').value).toLocaleString()+' words';}
@@ -849,7 +852,39 @@ function autoUpdateLore(ch){
   activeAnalysis[ch.id]=p;
   return p;
 }
-async function autoUpdateLoreImpl(ch){const p=proj();const ec=p.characters.map(function(c){return c.name+' ('+c.role+'): '+(c.personality||'')+(c.status?' | '+c.status:'');}).join('\n')||'none';const el=p.lorebook.map(function(l){return'['+l.category+'] '+l.name+': '+l.description;}).join('\n')||'none';const curIdx=p.chapters.findIndex(function(c){return c.id===ch.id;});const prevSums=p.chapters.slice(0,curIdx).map(function(c,i){return'Ch.'+(i+1)+' "'+c.title+'": '+(c.summary||'(no summary)');}).join('\n')||'none';const results=await Promise.all([callAI([{role:'user',content:CFG.prompts.summarise(ch)}],350),callAI([{role:'user',content:CFG.prompts.loreExtract(ch,ec,el)}],2400),(ch.content&&ch.content.trim()&&ch.content.length>200)?callAI([{role:'user',content:CFG.prompts.continuityCheck(ch,ec,el,prevSums)}],Math.min(6000,Math.max(1500,Math.ceil((ch.content||'').length/4)))):Promise.resolve(null)]);const summary=results[0];const raw=results[1];const continuityResult=results[2];ch.summary=summary.trim();if(continuityResult){const lower=continuityResult.toLowerCase();const noIssues=lower.includes('no issue')||lower.includes('no continuity')||lower.includes('no problems')||lower.includes('consistent')||lower.trim().length<80;const banner=document.getElementById('continuityBanner');const bannerText=document.getElementById('continuityText');if(banner&&bannerText){if(!noIssues){bannerText.textContent=continuityResult.trim();banner.classList.add('show');}else{banner.classList.remove('show');}}}try{const d=extractJSON(raw);if(d.characters)d.characters.forEach(function(nc){const ex=p.characters.find(function(c){return c.name.toLowerCase()===nc.name.toLowerCase();});if(ex){if(nc.status)ex.status=nc.status;if(nc.relations)ex.relations=nc.relations;if(nc.appearance&&!ex.appearance)ex.appearance=nc.appearance;if(nc.personality&&!ex.personality)ex.personality=nc.personality;}else if(nc.isNew!==false&&nc.name)p.characters.push({id:uid(),name:nc.name,role:nc.role||'',appearance:nc.appearance||'',personality:nc.personality||'',status:nc.status||'',relations:nc.relations||''});});if(d.lore)d.lore.forEach(function(nl){const ex=p.lorebook.find(function(l){return l.name.toLowerCase()===nl.name.toLowerCase();});if(ex){ex.description=nl.description||ex.description;ex.category=nl.category||ex.category;}else if(nl.isNew!==false&&nl.name)p.lorebook.push({id:uid(),name:nl.name,category:nl.category||'Other',description:nl.description||''});});}catch(e){console.warn('Lore parse failed',e);}save();updateStats();if(activeChId)initChatPanels(activeChId);}
+function buildAnalysisContext(p,ch){const ec=p.characters.map(function(c){return c.name+' ('+c.role+'): '+(c.personality||'')+(c.status?' | '+c.status:'');}).join('\n')||'none';const el=p.lorebook.map(function(l){return'['+l.category+'] '+l.name+': '+l.description;}).join('\n')||'none';const curIdx=p.chapters.findIndex(function(c){return c.id===ch.id;});const prevSums=p.chapters.slice(0,curIdx<0?p.chapters.length:curIdx).map(function(c,i){return'Ch.'+(i+1)+' "'+c.title+'": '+(c.summary||'(no summary)');}).join('\n')||'none';return{ec:ec,el:el,prevSums:prevSums};}
+async function autoUpdateLoreImpl(ch){const p=proj();const ctx=buildAnalysisContext(p,ch);const results=await Promise.all([callAI([{role:'user',content:CFG.prompts.summarise(ch)}],350),callAI([{role:'user',content:CFG.prompts.loreExtract(ch,ctx.ec,ctx.el)}],2400)]);const summary=results[0];const raw=results[1];ch.summary=summary.trim();try{const d=extractJSON(raw);if(d.characters)d.characters.forEach(function(nc){const ex=p.characters.find(function(c){return c.name.toLowerCase()===nc.name.toLowerCase();});if(ex){if(nc.status)ex.status=nc.status;if(nc.relations)ex.relations=nc.relations;if(nc.appearance&&!ex.appearance)ex.appearance=nc.appearance;if(nc.personality&&!ex.personality)ex.personality=nc.personality;}else if(nc.isNew!==false&&nc.name)p.characters.push({id:uid(),name:nc.name,role:nc.role||'',appearance:nc.appearance||'',personality:nc.personality||'',status:nc.status||'',relations:nc.relations||''});});if(d.lore)d.lore.forEach(function(nl){const ex=p.lorebook.find(function(l){return l.name.toLowerCase()===nl.name.toLowerCase();});if(ex){ex.description=nl.description||ex.description;ex.category=nl.category||ex.category;}else if(nl.isNew!==false&&nl.name)p.lorebook.push({id:uid(),name:nl.name,category:nl.category||'Other',description:nl.description||''});});}catch(e){console.warn('Lore parse failed',e);}save();updateStats();if(activeChId)initChatPanels(activeChId);}
+const activeContinuityCheck={};
+function checkContinuityNow(chId){
+  if(activeContinuityCheck[chId])return activeContinuityCheck[chId];
+  const p=checkContinuityImpl(chId).finally(function(){delete activeContinuityCheck[chId];});
+  activeContinuityCheck[chId]=p;
+  return p;
+}
+async function checkContinuityImpl(chId){
+  const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===chId;});if(!ch)return;
+  const liveContent=(chId===activeChId?document.getElementById('chEditor').value:ch.content)||'';
+  const banner=document.getElementById('continuityBanner');const bannerText=document.getElementById('continuityText');
+  if(!liveContent.trim()||liveContent.length<200){toast('Chapter is too short to check yet','err');return;}
+  const ctx=buildAnalysisContext(p,ch);
+  const liveCh={title:ch.title,content:liveContent};
+  const maxTok=Math.min(6000,Math.max(1500,Math.ceil(liveContent.length/4)));
+  const result=await callAI([{role:'user',content:CFG.prompts.continuityCheck(liveCh,ctx.ec,ctx.el,ctx.prevSums)}],maxTok);
+  const lower=result.toLowerCase();
+  const noIssues=lower.includes('no issue')||lower.includes('no continuity')||lower.includes('no problems')||lower.includes('consistent')||lower.trim().length<80;
+  if(banner&&bannerText){
+    if(!noIssues){bannerText.textContent=result.trim();banner.classList.add('show');}
+    else{banner.classList.remove('show');toast('No continuity issues found','ok');}
+  }
+}
+document.getElementById('checkContinuityBtn').addEventListener('click',async function(){
+  if(!gs().apiKey){toast('Add API key in Settings','err');return;}
+  if(!activeChId)return;
+  const btn=this;const origLabel=btn.textContent;btn.disabled=true;btn.textContent='Checking...';
+  try{await checkContinuityNow(activeChId);}
+  catch(e){toast('Continuity check failed: '+e.message,'err');}
+  finally{btn.disabled=false;btn.textContent=origLabel;}
+});
 document.getElementById('syncCharsBtn').addEventListener('click',async function(){if(!gs().apiKey){toast('Add API key first','err');return;}if(!activeChId){toast('Open a chapter first','err');return;}const ch=proj()&&proj().chapters.find(function(c){return c.id===activeChId;});if(!ch||!ch.content){toast('Chapter has no content yet','err');return;}const btn=document.getElementById('syncCharsBtn');btn.textContent='Syncing...';btn.disabled=true;try{await autoUpdateLore(ch);renderChars();toast('Characters synced','ok');}catch(e){toast(e.message,'err');}finally{btn.textContent='Sync from chapter';btn.disabled=false;}});
 document.getElementById('syncLoreBtn').addEventListener('click',async function(){if(!gs().apiKey){toast('Add API key first','err');return;}if(!activeChId){toast('Open a chapter first','err');return;}const ch=proj()&&proj().chapters.find(function(c){return c.id===activeChId;});if(!ch||!ch.content){toast('Chapter has no content yet','err');return;}const btn=document.getElementById('syncLoreBtn');btn.textContent='Syncing...';btn.disabled=true;try{await autoUpdateLore(ch);renderLore();toast('Lorebook synced','ok');}catch(e){toast(e.message,'err');}finally{btn.textContent='Sync from chapter';btn.disabled=false;}});
 
