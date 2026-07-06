@@ -228,6 +228,10 @@ main{flex:1;overflow:hidden;position:relative;}
 /* CONTINUITY BANNER */
 .continuity-banner{display:none;margin:8px 20px;padding:9px 13px;background:var(--blush-soft);border:1px solid var(--blush);border-radius:var(--r-lg);font-size:0.79rem;line-height:1.6;color:var(--text);flex-shrink:0;}
 .continuity-banner.show{display:block;}
+.diff-del{text-decoration:line-through;color:var(--blush);background:var(--blush-soft);border-radius:2px;}
+.diff-ins{background:var(--moss-soft);color:var(--moss);border-radius:2px;text-decoration:none;font-weight:500;}
+#continuityDiffView p{margin-bottom:1em;}
+#continuityDiffView p:last-child{margin-bottom:0;}
 .continuity-banner-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
 .continuity-banner-title{font-family:var(--font-mono);font-size:0.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--blush);font-weight:600;}
 .continuity-dismiss{background:none;border:none;cursor:pointer;color:var(--blush);font-size:0.85rem;padding:0 2px;line-height:1;}
@@ -466,6 +470,7 @@ main{flex:1;overflow:hidden;position:relative;}
           <div class="continuity-banner" id="continuityBanner">
             <div class="continuity-banner-head"><span class="continuity-banner-title">&#9888; Continuity Issues</span><button class="continuity-dismiss" id="continuityDismiss">&#215;</button></div>
             <div id="continuityText"></div>
+            <div style="margin-top:8px"><button class="btn btn-sm btn-primary" id="continuityFixBtn">Fix in Story</button></div>
           </div>
           <textarea class="editor-textarea" id="chEditor" placeholder="Write here, or switch to AI Chat to brainstorm ideas first."></textarea>
           <div id="continueDraftArea">
@@ -579,7 +584,20 @@ main{flex:1;overflow:hidden;position:relative;}
 <div class="modal-back" id="charModal"><div class="modal"><div class="modal-head"><div class="modal-title" id="charModalTitle">Add character</div><button class="icon-btn" onclick="closeModal('charModal')">&#215;</button></div><div class="modal-body"><div class="field"><label class="flabel">Name *</label><input class="finput" id="cName" /></div><div class="field"><label class="flabel">Role</label><input class="finput" id="cRole" placeholder="Protagonist, Antagonist..." /></div><div class="field"><label class="flabel">Appearance</label><textarea class="ftextarea" style="min-height:56px" id="cAppear"></textarea></div><div class="field"><label class="flabel">Personality &amp; motivations</label><textarea class="ftextarea" style="min-height:56px" id="cPersonality"></textarea></div><div class="field"><label class="flabel">Current arc / status</label><textarea class="ftextarea" style="min-height:46px" id="cStatus"></textarea></div><div class="field"><label class="flabel">Relationships</label><textarea class="ftextarea" style="min-height:46px" id="cRelations"></textarea></div><input type="hidden" id="cEditId" /></div><div class="modal-foot"><button class="btn" onclick="closeModal('charModal')">Cancel</button><button class="btn btn-primary" id="saveCharBtn">Save</button></div></div></div>
 <div class="modal-back" id="loreModal"><div class="modal"><div class="modal-head"><div class="modal-title" id="loreModalTitle">Add lore entry</div><button class="icon-btn" onclick="closeModal('loreModal')">&#215;</button></div><div class="modal-body"><div class="field"><label class="flabel">Name *</label><input class="finput" id="lName" /></div><div class="field"><label class="flabel">Category</label><select class="fselect" id="lCat"><option>World</option><option>Location</option><option>Faction</option><option>History</option><option>Magic / Tech</option><option>Item</option><option>Other</option></select></div><div class="field"><label class="flabel">Description</label><textarea class="ftextarea" id="lDesc"></textarea></div><input type="hidden" id="lEditId" /></div><div class="modal-foot"><button class="btn" onclick="closeModal('loreModal')">Cancel</button><button class="btn btn-primary" id="saveLoreEntryBtn">Save</button></div></div></div>
 <div class="modal-back" id="projNameModal"><div class="modal"><div class="modal-head"><div class="modal-title" id="projNameTitle">New project</div><button class="icon-btn" onclick="closeModal('projNameModal')">&#215;</button></div><div class="modal-body"><div class="field"><label class="flabel">Project name</label><input class="finput" id="projNameInput" placeholder="My novel..." /></div></div><div class="modal-foot"><button class="btn" onclick="closeModal('projNameModal')">Cancel</button><button class="btn btn-primary" id="saveProjNameBtn">Create</button></div></div></div>
-<!-- FANFIC UPLOAD MODAL -->
+<!-- CONTINUITY FIX REVIEW MODAL -->
+<div class="modal-back" id="continuityFixModal">
+  <div class="modal modal-wide" style="max-width:760px">
+    <div class="modal-head"><span class="modal-title">Review Continuity Fix</span><button class="btn btn-sm" onclick="closeModal('continuityFixModal')">&#215;</button></div>
+    <div class="modal-body">
+      <p style="font-size:0.8rem;color:var(--muted);margin-bottom:10px;line-height:1.6">Removed text is <span class="diff-del">struck through</span>, additions are <span class="diff-ins">highlighted</span>. Review before applying — this will overwrite the chapter text.</p>
+      <div id="continuityDiffView" style="font-family:var(--font-story);font-size:0.95rem;line-height:1.75;max-height:55vh;overflow-y:auto;padding:14px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg-editor)"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('continuityFixModal')">Cancel</button>
+      <button class="btn btn-primary" id="applyContinuityFixBtn">Confirm &amp; Apply</button>
+    </div>
+  </div>
+</div>
 <div class="modal-back" id="fanficModal">
   <div class="modal modal-wide">
     <div class="modal-head"><span class="modal-title">Fanfic Mode — Import Source Material</span><button class="btn btn-sm" onclick="closeModal('fanficModal')">&#215;</button></div>
@@ -617,7 +635,8 @@ main{flex:1;overflow:hidden;position:relative;}
 <div class="toast-zone" id="toastZone"></div>
 <script>
 'use strict';
-const CFG={version:'0.5',storageKey:'inkwell_v3',syncFile:'inkwell-sync.json',maxChatHist:40,autosaveMs:30000,maxDraftHistory:3,chLengths:{short:'~500 words',medium:'~1,000 words',long:'~2,000 words',verylong:'~3,500 words'},draftLengths:{short:'~500 words',medium:'~1,000 words',long:'~2,000 words',verylong:'~3,500 words',extended:'~5,000 words',epic:'~7,000 words'},tonePresets:{pacing:['Slow burn','Steady','Fast-paced','Urgent'],prose:['Sparse','Balanced','Rich','Lyrical'],mood:['Tense','Melancholic','Hopeful','Dark','Playful']},starters:['Write an opening scene','What should happen next?','Give me a plot twist','Describe this location','Write dialogue between characters'],loreCats:['All','World','Location','Faction','History','Magic / Tech','Item','Other'],charColors:['#b85c38','#4d8f63','#4a90d9','#9b59b6','#c0392b','#16a085','#d35400','#2e86c1'],prompts:{continuityCheck(ch,chars,lore,prevSummaries){return'You are a fiction continuity editor. Read the chapter below and check it against the established facts.\n\nCHARACTERS:\n'+chars+'\n\nLORE & WORLD FACTS:\n'+lore+'\n\nPREVIOUS CHAPTER SUMMARIES:\n'+prevSummaries+'\n\nCHAPTER TO CHECK:\n'+ch.content+'\n\nIdentify any continuity issues: character trait contradictions, timeline inconsistencies, world-rule violations, factual errors vs established lore, or POV/name slips. Be specific — quote the offending passage and explain the conflict. If there are no issues, say so briefly. Respond in plain prose, no JSON.';},
+const CFG={version:'0.6',storageKey:'inkwell_v3',syncFile:'inkwell-sync.json',maxChatHist:40,autosaveMs:30000,maxDraftHistory:3,chLengths:{short:'~500 words',medium:'~1,000 words',long:'~2,000 words',verylong:'~3,500 words'},draftLengths:{short:'~500 words',medium:'~1,000 words',long:'~2,000 words',verylong:'~3,500 words',extended:'~5,000 words',epic:'~7,000 words'},tonePresets:{pacing:['Slow burn','Steady','Fast-paced','Urgent'],prose:['Sparse','Balanced','Rich','Lyrical'],mood:['Tense','Melancholic','Hopeful','Dark','Playful']},starters:['Write an opening scene','What should happen next?','Give me a plot twist','Describe this location','Write dialogue between characters'],loreCats:['All','World','Location','Faction','History','Magic / Tech','Item','Other'],charColors:['#b85c38','#4d8f63','#4a90d9','#9b59b6','#c0392b','#16a085','#d35400','#2e86c1'],prompts:{continuityCheck(ch,chars,lore,prevSummaries){return'You are a fiction continuity editor. Read the chapter below and check it against the established facts.\n\nCHARACTERS:\n'+chars+'\n\nLORE & WORLD FACTS:\n'+lore+'\n\nPREVIOUS CHAPTER SUMMARIES:\n'+prevSummaries+'\n\nCHAPTER TO CHECK:\n'+ch.content+'\n\nIdentify any continuity issues: character trait contradictions, timeline inconsistencies, world-rule violations, factual errors vs established lore, or POV/name slips. Be specific — quote the offending passage and explain the conflict. If there are no issues, say so briefly. Respond in plain prose, no JSON.';},
+continuityFix(ch,issues){return'You are a meticulous fiction line-editor. Below is a chapter and a list of continuity issues found in it. Rewrite the chapter to fix ONLY these specific issues.\n\nSTRICT RULES:\n- Preserve the original wording, sentence structure, style, and formatting everywhere else EXACTLY as-is.\n- Make the smallest possible edits needed to resolve each issue — do not paraphrase or restyle unrelated sentences.\n- Do not add commentary, headers, or explanations.\n- Respond with ONLY the full corrected chapter text, nothing else — no preamble, no markdown fences, no quotes around it.\n\nCONTINUITY ISSUES TO FIX:\n'+issues+'\n\nCHAPTER:\n'+ch.content;},
 rewriteDraft(originalDraft,style){return'Rewrite the following story draft in the same style, voice, and narrative direction. Do not change the plot — same events, same characters, same scene. Just write it fresh.\n\nOriginal draft:\n---\n'+originalDraft+'\n---\n\nWrite the rewrite now. Output prose only, no preamble.';},
 expandDraft(originalDraft,ctx){return'The following is a story draft that needs to be expanded into a longer, more detailed version. Keep all plot events, characters, and the overall narrative arc. Add more scene detail, dialogue, interiority, sensory description, and pacing. Do not add new plot events that contradict the original.\n\nContext:\n'+ctx+'\n\nOriginal draft:\n---\n'+originalDraft+'\n---\n\nWrite the expanded version now. Output prose only, no preamble.';},
 fanficExtract(text,existingChars,existingLore){return'You are a fiction analyst. Read the following source text and extract rich, detailed information for a fanfiction writing tool.\n\nExtract:\n1. CHARACTERS — for each character: name, role (protagonist/antagonist/supporting), detailed appearance, detailed personality traits, speech patterns, motivations, status, and relationships to other characters.\n2. LOREBOOK — for each significant location, faction, organisation, magic system, technology, cultural element, historical event, or world rule: name, category (Place/Faction/Magic/Technology/History/Rule/Object/Other), and a thorough description.\n3. WRITING STYLE — analyse the prose: sentence rhythm, vocabulary level, narrative POV, tense, dialogue style, descriptive density, tone.\n4. STORY BIBLE — title (infer if not stated), genre, a 2-3 sentence premise, and a style guide paragraph.\n\nExisting characters to update rather than duplicate: '+existingChars+'\nExisting lore to update rather than duplicate: '+existingLore+'\n\nSource text (may be truncated):\n---\n'+text.slice(0,12000)+'\n---\n\nRespond ONLY with a JSON object, no markdown fences:\n{"characters":[{"name":"","role":"","appearance":"","personality":"","speechPattern":"","motivations":"","status":"","relations":"","isNew":true}],"lore":[{"name":"","category":"","description":"","isNew":true}],"bible":{"title":"","genre":"","premise":"","style":""},"extractedStyle":""}';},
@@ -628,6 +647,59 @@ let activeChId=null,activeLoreCat='All',activeSubTab='write',projModalMode='new'
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const wc=t=>t?t.trim().split(/\s+/).filter(Boolean).length:0;
 const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function diffTokens(a,b,sep){
+  sep=sep||'';
+  if(a.length*b.length>250000){
+    const ops=[];const joinA=a.join(sep),joinB=b.join(sep);
+    if(joinA===joinB)return[{type:'eq',text:joinA}];
+    if(a.length)ops.push({type:'del',text:joinA});
+    if(b.length)ops.push({type:'ins',text:joinB});
+    return ops;
+  }
+  const n=a.length,m=b.length;
+  const dp=new Array(n+1);
+  for(let i=0;i<=n;i++)dp[i]=new Array(m+1).fill(0);
+  for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)dp[i][j]=a[i]===b[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+  const ops=[];let i=0,j=0;
+  while(i<n&&j<m){
+    if(a[i]===b[j]){ops.push({type:'eq',text:a[i]});i++;j++;}
+    else if(dp[i+1][j]>=dp[i][j+1]){ops.push({type:'del',text:a[i]});i++;}
+    else{ops.push({type:'ins',text:b[j]});j++;}
+  }
+  while(i<n){ops.push({type:'del',text:a[i]});i++;}
+  while(j<m){ops.push({type:'ins',text:b[j]});j++;}
+  const merged=[];
+  ops.forEach(function(op){const last=merged[merged.length-1];if(last&&last.type===op.type)last.text+=sep+op.text;else merged.push({type:op.type,text:op.text});});
+  return merged;
+}
+function computeChapterDiffHtml(oldText,newText){
+  const oldParas=(oldText||'').split(/\n\s*\n/);
+  const newParas=(newText||'').split(/\n\s*\n/);
+  const rawOps=diffTokens(oldParas,newParas,'\n\n');
+  const parts=[];
+  for(let k=0;k<rawOps.length;k++){
+    const op=rawOps[k];
+    if(op.type==='eq'){
+      parts.push('<p>'+esc(op.text)+'</p>');
+    }else if(op.type==='del'&&rawOps[k+1]&&rawOps[k+1].type==='ins'){
+      const wOld=op.text.split(/\s+/).filter(Boolean);
+      const wNew=rawOps[k+1].text.split(/\s+/).filter(Boolean);
+      const wordOps=diffTokens(wOld,wNew,' ');
+      const inner=wordOps.map(function(w){
+        if(w.type==='eq')return esc(w.text);
+        if(w.type==='del')return '<del class="diff-del">'+esc(w.text)+'</del>';
+        return '<ins class="diff-ins">'+esc(w.text)+'</ins>';
+      }).join(' ');
+      parts.push('<p>'+inner+'</p>');
+      k++;
+    }else if(op.type==='del'){
+      parts.push('<p><del class="diff-del">'+esc(op.text)+'</del></p>');
+    }else if(op.type==='ins'){
+      parts.push('<p><ins class="diff-ins">'+esc(op.text)+'</ins></p>');
+    }
+  }
+  return parts.join('');
+}
 const gs=()=>S.g;
 const proj=()=>S.projects.find(p=>p.id===S.activeProjectId)||null;
 function charInitials(n){return(n||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');}
@@ -691,6 +763,37 @@ function renderChList(){const p=proj();const el=document.getElementById('chList'
 function openChapter(id){activeChId=id;const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===id;});if(!ch)return;const idx=p.chapters.indexOf(ch);document.getElementById('editorEmpty').style.display='none';document.getElementById('editorActive').style.display='flex';document.getElementById('chNumBadge').textContent='Ch. '+(idx+1);document.getElementById('chTitleInput').value=ch.title||'';document.getElementById('chEditor').value=ch.content||'';document.getElementById('continueDraftArea').style.display='none';document.getElementById('continuityBanner').classList.remove('show');updateWC();renderChList();renderScenes(ch);renderTonePanel(ch);initChatPanels(id);if(activeSubTab==='chat')document.getElementById('chatPanelInline').style.display='block';}
 function renderTonePanel(ch){if(!ch.tone)ch.tone={pacing:'Steady',prose:'Balanced',mood:'Hopeful'};['pacing','prose','mood'].forEach(function(k){const sel=document.getElementById('tone'+k.charAt(0).toUpperCase()+k.slice(1));if(!sel)return;sel.innerHTML=CFG.tonePresets[k].map(function(v){return'<option value="'+v+'"'+(ch.tone[k]===v?' selected':'')+'>'+v+'</option>';}).join('');sel.onchange=function(){ch.tone[k]=sel.value;clearTimeout(autosaveTimer);autosaveTimer=setTimeout(silentSave,2000);};});}
 document.getElementById('continuityDismiss').addEventListener('click',function(){document.getElementById('continuityBanner').classList.remove('show');});
+let pendingContinuityFix=null;
+document.getElementById('continuityFixBtn').addEventListener('click',async function(){
+  const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===activeChId;});
+  if(!ch)return;
+  const issues=document.getElementById('continuityText').textContent.trim();
+  if(!issues)return;
+  const btn=this;const origLabel=btn.textContent;btn.disabled=true;btn.textContent='Generating fix...';
+  try{
+    const maxTok=Math.min(10000,Math.max(2000,Math.ceil(ch.content.length/3)));
+    const corrected=await callAI([{role:'user',content:CFG.prompts.continuityFix(ch,issues)}],maxTok);
+    const cleaned=corrected.trim().replace(/^```[a-z]*\n?/i,'').replace(/```$/,'').trim();
+    if(!cleaned||cleaned===ch.content.trim()){toast('No changes suggested','err');return;}
+    pendingContinuityFix={chId:ch.id,correctedText:cleaned};
+    document.getElementById('continuityDiffView').innerHTML=computeChapterDiffHtml(ch.content,cleaned);
+    openModal('continuityFixModal');
+  }catch(e){toast('Fix failed: '+e.message,'err');}
+  finally{btn.disabled=false;btn.textContent=origLabel;}
+});
+document.getElementById('applyContinuityFixBtn').addEventListener('click',function(){
+  if(!pendingContinuityFix)return;
+  const p=proj();const ch=p&&p.chapters.find(function(c){return c.id===pendingContinuityFix.chId;});
+  if(!ch){closeModal('continuityFixModal');return;}
+  ch.content=pendingContinuityFix.correctedText;
+  if(activeChId===ch.id)document.getElementById('chEditor').value=ch.content;
+  updateWC();
+  save();
+  document.getElementById('continuityBanner').classList.remove('show');
+  closeModal('continuityFixModal');
+  pendingContinuityFix=null;
+  toast('Continuity fix applied','ok');
+});
 function saveCh(){const p=proj();if(!p||!activeChId)return;const ch=p.chapters.find(function(c){return c.id===activeChId;});if(!ch)return;ch.title=document.getElementById('chTitleInput').value||'Untitled';ch.content=document.getElementById('chEditor').value;ch.wordCount=wc(ch.content);save();renderChList();updateStats();}
 function updateWC(){document.getElementById('wcLabel').textContent=wc(document.getElementById('chEditor').value).toLocaleString()+' words';}
 document.getElementById('chEditor').addEventListener('input',function(){updateWC();clearTimeout(autosaveTimer);autosaveTimer=setTimeout(silentSave,CFG.autosaveMs);});
@@ -738,7 +841,7 @@ function scrollChat(chId){setTimeout(function(){document.querySelectorAll('#msgs
 function buildCtx(chId){const p=proj();if(!p)return'';const s=gs();const b=p.bible;const n=s.contextChapters==='all'?999:(parseInt(s.contextChapters)||3);const curId=chId||activeChId;const curIdx=p.chapters.findIndex(function(c){return c.id===curId;});const prev=p.chapters.slice(0,curIdx<0?p.chapters.length:curIdx).slice(-n);const curCh=p.chapters.find(function(c){return c.id===curId;});const corpus=((curCh&&curCh.content||'')+' '+(curCh&&curCh.title||'')+' '+prev.map(function(c){return c.content||'';}).join(' ')).toLowerCase();const short=corpus.length<400;const relevantChars=p.characters.filter(function(c){return short||corpus.includes(c.name.toLowerCase())||((c.role||'').toLowerCase().match(/protagonist|main|hero|narrator/));});const relevantLore=p.lorebook.filter(function(l){return short||corpus.includes(l.name.toLowerCase());});let ctx='';if(b&&b.title)ctx+='STORY: '+b.title+'\n';if(b&&b.genre)ctx+='GENRE & TONE: '+b.genre+'\n';if(b&&b.premise)ctx+='\nPREMISE:\n'+b.premise+'\n';if(b&&b.style)ctx+='\nSTYLE:\n'+b.style+'\n';if(relevantChars.length){ctx+='\nCHARACTERS:\n';relevantChars.forEach(function(c){ctx+='- '+c.name+' ('+(c.role||'?')+')';if(c.appearance)ctx+=' | Appearance: '+c.appearance;if(c.personality)ctx+=' | Personality: '+c.personality;if(c.status)ctx+=' | Status: '+c.status;if(c.relations)ctx+=' | Relations: '+c.relations;ctx+='\n';});}if(relevantLore.length){ctx+='\nWORLD & LORE:\n';relevantLore.forEach(function(l){ctx+='- ['+l.category+'] '+l.name+': '+l.description+'\n';});}if(curCh&&curCh.tone){ctx+='\nCHAPTER TONE:\n- Pacing: '+curCh.tone.pacing+'\n- Prose style: '+curCh.tone.prose+'\n- Mood: '+curCh.tone.mood+'\n';}if(curCh&&curCh.scenes&&curCh.scenes.length){ctx+='\nCHAPTER OUTLINE:\n';curCh.scenes.forEach(function(sc,i){ctx+='Scene '+(i+1)+': '+sc.title+(sc.pov?' (POV: '+sc.pov+')':'')+'\n';});}if(prev.length){ctx+='\nPREVIOUS CHAPTERS:\n';prev.forEach(function(ch){const i=p.chapters.indexOf(ch);ctx+='Ch.'+(i+1)+' "'+ch.title+'": '+(ch.summary||(ch.content&&ch.content.slice(0,160)+'...')||'(no summary)')+'\n';});}const last=prev[prev.length-1];if(last&&last.content){ctx+='\nEND OF LAST CHAPTER:\n"...'+last.content.trim().split(/\s+/).slice(-200).join(' ')+'"\n';}return ctx;}
 
 /* LORE UPDATE */
-async function autoUpdateLore(ch){const p=proj();const ec=p.characters.map(function(c){return c.name+' ('+c.role+'): '+(c.personality||'')+(c.status?' | '+c.status:'');}).join('\n')||'none';const el=p.lorebook.map(function(l){return'['+l.category+'] '+l.name+': '+l.description;}).join('\n')||'none';const curIdx=p.chapters.findIndex(function(c){return c.id===ch.id;});const prevSums=p.chapters.slice(0,curIdx).map(function(c,i){return'Ch.'+(i+1)+' "'+c.title+'": '+(c.summary||'(no summary)');}).join('\n')||'none';const results=await Promise.all([callAI([{role:'user',content:CFG.prompts.summarise(ch)}],350),callAI([{role:'user',content:CFG.prompts.loreExtract(ch,ec,el)}],2400),(ch.content&&ch.content.trim()&&ch.content.length>200)?callAI([{role:'user',content:CFG.prompts.continuityCheck(ch,ec,el,prevSums)}],600):Promise.resolve(null)]);const summary=results[0];const raw=results[1];const continuityResult=results[2];ch.summary=summary.trim();if(continuityResult){const lower=continuityResult.toLowerCase();const noIssues=lower.includes('no issue')||lower.includes('no continuity')||lower.includes('no problems')||lower.includes('consistent')||lower.trim().length<80;const banner=document.getElementById('continuityBanner');const bannerText=document.getElementById('continuityText');if(banner&&bannerText){if(!noIssues){bannerText.textContent=continuityResult.trim();banner.classList.add('show');}else{banner.classList.remove('show');}}}try{const d=extractJSON(raw);if(d.characters)d.characters.forEach(function(nc){const ex=p.characters.find(function(c){return c.name.toLowerCase()===nc.name.toLowerCase();});if(ex){if(nc.status)ex.status=nc.status;if(nc.relations)ex.relations=nc.relations;if(nc.appearance&&!ex.appearance)ex.appearance=nc.appearance;if(nc.personality&&!ex.personality)ex.personality=nc.personality;}else if(nc.isNew!==false&&nc.name)p.characters.push({id:uid(),name:nc.name,role:nc.role||'',appearance:nc.appearance||'',personality:nc.personality||'',status:nc.status||'',relations:nc.relations||''});});if(d.lore)d.lore.forEach(function(nl){const ex=p.lorebook.find(function(l){return l.name.toLowerCase()===nl.name.toLowerCase();});if(ex){ex.description=nl.description||ex.description;ex.category=nl.category||ex.category;}else if(nl.isNew!==false&&nl.name)p.lorebook.push({id:uid(),name:nl.name,category:nl.category||'Other',description:nl.description||''});});}catch(e){console.warn('Lore parse failed',e);}save();updateStats();if(activeChId)initChatPanels(activeChId);}
+async function autoUpdateLore(ch){const p=proj();const ec=p.characters.map(function(c){return c.name+' ('+c.role+'): '+(c.personality||'')+(c.status?' | '+c.status:'');}).join('\n')||'none';const el=p.lorebook.map(function(l){return'['+l.category+'] '+l.name+': '+l.description;}).join('\n')||'none';const curIdx=p.chapters.findIndex(function(c){return c.id===ch.id;});const prevSums=p.chapters.slice(0,curIdx).map(function(c,i){return'Ch.'+(i+1)+' "'+c.title+'": '+(c.summary||'(no summary)');}).join('\n')||'none';const results=await Promise.all([callAI([{role:'user',content:CFG.prompts.summarise(ch)}],350),callAI([{role:'user',content:CFG.prompts.loreExtract(ch,ec,el)}],2400),(ch.content&&ch.content.trim()&&ch.content.length>200)?callAI([{role:'user',content:CFG.prompts.continuityCheck(ch,ec,el,prevSums)}],Math.min(6000,Math.max(1500,Math.ceil((ch.content||'').length/4)))):Promise.resolve(null)]);const summary=results[0];const raw=results[1];const continuityResult=results[2];ch.summary=summary.trim();if(continuityResult){const lower=continuityResult.toLowerCase();const noIssues=lower.includes('no issue')||lower.includes('no continuity')||lower.includes('no problems')||lower.includes('consistent')||lower.trim().length<80;const banner=document.getElementById('continuityBanner');const bannerText=document.getElementById('continuityText');if(banner&&bannerText){if(!noIssues){bannerText.textContent=continuityResult.trim();banner.classList.add('show');}else{banner.classList.remove('show');}}}try{const d=extractJSON(raw);if(d.characters)d.characters.forEach(function(nc){const ex=p.characters.find(function(c){return c.name.toLowerCase()===nc.name.toLowerCase();});if(ex){if(nc.status)ex.status=nc.status;if(nc.relations)ex.relations=nc.relations;if(nc.appearance&&!ex.appearance)ex.appearance=nc.appearance;if(nc.personality&&!ex.personality)ex.personality=nc.personality;}else if(nc.isNew!==false&&nc.name)p.characters.push({id:uid(),name:nc.name,role:nc.role||'',appearance:nc.appearance||'',personality:nc.personality||'',status:nc.status||'',relations:nc.relations||''});});if(d.lore)d.lore.forEach(function(nl){const ex=p.lorebook.find(function(l){return l.name.toLowerCase()===nl.name.toLowerCase();});if(ex){ex.description=nl.description||ex.description;ex.category=nl.category||ex.category;}else if(nl.isNew!==false&&nl.name)p.lorebook.push({id:uid(),name:nl.name,category:nl.category||'Other',description:nl.description||''});});}catch(e){console.warn('Lore parse failed',e);}save();updateStats();if(activeChId)initChatPanels(activeChId);}
 document.getElementById('syncCharsBtn').addEventListener('click',async function(){if(!gs().apiKey){toast('Add API key first','err');return;}if(!activeChId){toast('Open a chapter first','err');return;}const ch=proj()&&proj().chapters.find(function(c){return c.id===activeChId;});if(!ch||!ch.content){toast('Chapter has no content yet','err');return;}const btn=document.getElementById('syncCharsBtn');btn.textContent='Syncing...';btn.disabled=true;try{await autoUpdateLore(ch);renderChars();toast('Characters synced','ok');}catch(e){toast(e.message,'err');}finally{btn.textContent='Sync from chapter';btn.disabled=false;}});
 document.getElementById('syncLoreBtn').addEventListener('click',async function(){if(!gs().apiKey){toast('Add API key first','err');return;}if(!activeChId){toast('Open a chapter first','err');return;}const ch=proj()&&proj().chapters.find(function(c){return c.id===activeChId;});if(!ch||!ch.content){toast('Chapter has no content yet','err');return;}const btn=document.getElementById('syncLoreBtn');btn.textContent='Syncing...';btn.disabled=true;try{await autoUpdateLore(ch);renderLore();toast('Lorebook synced','ok');}catch(e){toast(e.message,'err');}finally{btn.textContent='Sync from chapter';btn.disabled=false;}});
 
